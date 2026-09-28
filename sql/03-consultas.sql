@@ -20,21 +20,6 @@ WHERE       DATE(t.fecha_hora) = CURDATE()
 ORDER BY    t.fecha_hora, t.box;
 
 -- Consulta 2 --------------------------------------------------------
--- Detalle completo de una orden: paciente, practicas, precios y total.
-SELECT  o.numero                          AS 'Orden',
-        CONCAT(p.apellido,', ',p.nombre)  AS 'Paciente',
-        e.codigo                          AS 'Codigo',
-        e.nombre                          AS 'Practica',
-        e.horas_ayuno                     AS 'Ayuno (h)',
-        d.precio                          AS 'Precio'
-FROM        ordenes o
-INNER JOIN  pacientes     p ON p.paciente_id = o.paciente_id
-INNER JOIN  orden_detalle d ON d.orden_id    = o.orden_id
-INNER JOIN  estudios      e ON e.estudio_id  = d.estudio_id
-WHERE       o.numero = 'O-0001'
-ORDER BY    e.codigo;
-
--- Consulta 3 --------------------------------------------------------
 -- Trazabilidad completa de una muestra: el corazon del sistema.
 SELECT  m.codigo_barra                              AS 'Muestra',
         tr.fecha_hora                               AS 'Fecha y hora',
@@ -49,7 +34,7 @@ LEFT  JOIN  profesionales  pr ON pr.profesional_id = tr.profesional_id
 WHERE       m.codigo_barra = 'M-SUE-0001'
 ORDER BY    tr.fecha_hora;
 
--- Consulta 4 --------------------------------------------------------
+-- Consulta 3 --------------------------------------------------------
 -- Muestras demoradas: mas de 120 minutos en circuito sin informar.
 -- Utiliza la vista creada en el script de esquema.
 SELECT  codigo_barra AS 'Muestra',
@@ -60,16 +45,7 @@ FROM    v_muestras_en_circuito
 WHERE   minutos_en_proceso > 120
 ORDER BY minutos_en_proceso DESC;
 
--- Consulta 5 --------------------------------------------------------
--- Indicador de gestion: cantidad de muestras por estado (GROUP BY).
-SELECT  estado          AS 'Estado',
-        COUNT(*)        AS 'Cantidad',
-        ROUND(COUNT(*) * 100 / (SELECT COUNT(*) FROM muestras),2) AS 'Porcentaje'
-FROM    muestras
-GROUP BY estado
-ORDER BY COUNT(*) DESC;
-
--- Consulta 6 --------------------------------------------------------
+-- Consulta 4 --------------------------------------------------------
 -- Facturacion por obra social en el periodo (GROUP BY + HAVING).
 SELECT  COALESCE(os.nombre,'Particular') AS 'Financiador',
         COUNT(DISTINCT o.orden_id)       AS 'Ordenes',
@@ -84,7 +60,7 @@ GROUP BY    COALESCE(os.nombre,'Particular')
 HAVING      SUM(d.precio) > 0
 ORDER BY    SUM(d.precio) DESC;
 
--- Consulta 7 --------------------------------------------------------
+-- Consulta 5 --------------------------------------------------------
 -- Resultados fuera del rango de referencia pendientes de validacion.
 SELECT  o.numero                         AS 'Orden',
         CONCAT(p.apellido,', ',p.nombre) AS 'Paciente',
@@ -104,7 +80,7 @@ WHERE       r.validado = 0
   AND      (r.valor < r.ref_min OR r.valor > r.ref_max)
 ORDER BY    o.numero, e.codigo;
 
--- Consulta 8 --------------------------------------------------------
+-- Consulta 6 --------------------------------------------------------
 -- Tiempo de respuesta (TAT) promedio en minutos por tipo de muestra,
 -- entre la extraccion y el ultimo evento registrado.
 SELECT  m.tipo_muestra                                        AS 'Tipo de muestra',
@@ -118,8 +94,9 @@ WHERE       m.fecha_extraccion IS NOT NULL
 GROUP BY    m.tipo_muestra
 ORDER BY    3 DESC;
 
--- Consulta 9 --------------------------------------------------------
--- Actualizacion: validacion de todos los resultados de una orden.
+-- Consulta 7 --------------------------------------------------------
+-- Actualizacion: validacion de todos los resultados de una orden,
+-- seguida de la verificacion posterior.
 UPDATE      resultados    r
 INNER JOIN  orden_detalle d ON d.detalle_id = r.detalle_id
 INNER JOIN  ordenes       o ON o.orden_id   = d.orden_id
@@ -130,10 +107,36 @@ WHERE       o.numero = 'O-0001' AND r.validado = 0;
 
 SELECT ROW_COUNT() AS 'Resultados validados';
 
--- Consulta 10 -------------------------------------------------------
--- Verificacion posterior a la actualizacion.
 SELECT  o.numero AS 'Orden', COUNT(*) AS 'Resultados', SUM(r.validado) AS 'Validados'
 FROM        resultados    r
 INNER JOIN  orden_detalle d ON d.detalle_id = r.detalle_id
 INNER JOIN  ordenes       o ON o.orden_id   = d.orden_id
 GROUP BY    o.numero;
+
+-- =====================================================================
+-- Consultas complementarias (no incluidas en el informe)
+-- =====================================================================
+
+-- Consulta 8 --------------------------------------------------------
+-- Detalle completo de una orden: paciente, practicas, precios y total.
+SELECT  o.numero                          AS 'Orden',
+        CONCAT(p.apellido,', ',p.nombre)  AS 'Paciente',
+        e.codigo                          AS 'Codigo',
+        e.nombre                          AS 'Practica',
+        e.horas_ayuno                     AS 'Ayuno (h)',
+        d.precio                          AS 'Precio'
+FROM        ordenes o
+INNER JOIN  pacientes     p ON p.paciente_id = o.paciente_id
+INNER JOIN  orden_detalle d ON d.orden_id    = o.orden_id
+INNER JOIN  estudios      e ON e.estudio_id  = d.estudio_id
+WHERE       o.numero = 'O-0001'
+ORDER BY    e.codigo;
+
+-- Consulta 9 --------------------------------------------------------
+-- Indicador de gestion: cantidad de muestras por estado (GROUP BY).
+SELECT  estado          AS 'Estado',
+        COUNT(*)        AS 'Cantidad',
+        ROUND(COUNT(*) * 100 / (SELECT COUNT(*) FROM muestras),2) AS 'Porcentaje'
+FROM    muestras
+GROUP BY estado
+ORDER BY COUNT(*) DESC;

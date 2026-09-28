@@ -14,8 +14,10 @@ FROM   muestras WHERE codigo_barra = 'M-ORI-0002';
 
 SELECT codigo_barra, estado FROM muestras WHERE codigo_barra = 'M-ORI-0002';
 
--- Borrado en cascada: al eliminar una orden se eliminan su detalle, sus
--- muestras, las trazas de esas muestras y sus resultados (ON DELETE CASCADE).
+-- Borrado de una orden sin muestras: su detalle se elimina en cascada
+-- (fk_detalle_orden ON DELETE CASCADE). Una orden con muestras no puede
+-- eliminarse (fk_muestra_orden ON DELETE RESTRICT, error 1451), porque
+-- arrastraria la bitacora de trazabilidad (RNF04).
 DELETE FROM ordenes WHERE numero = 'O-0003';
 
 SELECT 'ordenes'        AS tabla, COUNT(*) AS filas FROM ordenes
@@ -26,6 +28,9 @@ UNION ALL SELECT 'resultados',     COUNT(*) FROM resultados;
 
 -- Limpieza total del juego de datos de prueba.
 -- Se desactiva temporalmente la verificacion de claves foraneas.
+-- TRUNCATE no activa los disparadores; es una operacion administrativa
+-- que requiere el privilegio DROP, que el usuario de la aplicacion no
+-- posee, por lo que no compromete la inalterabilidad de la bitacora.
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE resultados;
 TRUNCATE TABLE trazas_muestra;

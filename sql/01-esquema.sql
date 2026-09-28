@@ -60,7 +60,7 @@ CREATE TABLE profesionales (
     apellido        VARCHAR(60) NOT NULL,
     nombre          VARCHAR(60) NOT NULL,
     matricula       VARCHAR(20),
-    rol             ENUM('Recepcionista','Extraccionista','Bioquimico','Administrador') NOT NULL,
+    rol             ENUM('Recepcionista','Extraccionista','Bioquimico','Director','Administrador') NOT NULL,
     activo          TINYINT(1)  NOT NULL DEFAULT 1,
     CONSTRAINT uq_profesional_dni UNIQUE (dni)
 ) ENGINE=InnoDB;
@@ -129,6 +129,10 @@ CREATE TABLE turnos (
 
 -- ---------------------------------------------------------------------
 -- Tabla ordenes
+-- Un turno genera a lo sumo una orden (uq_orden_turno). El total es un
+-- atributo derivado de orden_detalle que se conserva de forma deliberada
+-- (desnormalizacion controlada): la aplicacion lo calcula en la misma
+-- transaccion que registra el detalle.
 -- ---------------------------------------------------------------------
 CREATE TABLE ordenes (
     orden_id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,6 +145,7 @@ CREATE TABLE ordenes (
                        NOT NULL DEFAULT 'Abierta',
     total              DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     CONSTRAINT uq_orden_numero UNIQUE (numero),
+    CONSTRAINT uq_orden_turno  UNIQUE (turno_id),
     CONSTRAINT fk_orden_paciente FOREIGN KEY (paciente_id)
         REFERENCES pacientes (paciente_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_orden_turno FOREIGN KEY (turno_id)
@@ -178,13 +183,15 @@ CREATE TABLE muestras (
     fecha_extraccion DATETIME,
     CONSTRAINT uq_muestra_codigo UNIQUE (codigo_barra),
     CONSTRAINT fk_muestra_orden FOREIGN KEY (orden_id)
-        REFERENCES ordenes (orden_id) ON UPDATE CASCADE ON DELETE CASCADE
+        REFERENCES ordenes (orden_id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
 -- Tabla trazas_muestra
--- Bitacora inmutable del circuito. Cada fila es un EventoTraza del
--- modelo de objetos. Es la tabla que sostiene el objetivo del sistema.
+-- Bitacora inalterable del circuito (RNF04). Cada fila es un EventoTraza
+-- del modelo de objetos. Es la tabla que sostiene el objetivo del sistema.
+-- Las FK usan RESTRICT para que ningun borrado en cascada la alcance, y
+-- los disparadores definidos mas abajo rechazan UPDATE y DELETE.
 -- ---------------------------------------------------------------------
 CREATE TABLE trazas_muestra (
     traza_id        INT AUTO_INCREMENT PRIMARY KEY,
@@ -195,13 +202,15 @@ CREATE TABLE trazas_muestra (
     profesional_id  INT,
     observacion     VARCHAR(200),
     CONSTRAINT fk_traza_muestra FOREIGN KEY (muestra_id)
-        REFERENCES muestras (muestra_id) ON UPDATE CASCADE ON DELETE CASCADE,
+        REFERENCES muestras (muestra_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT fk_traza_profesional FOREIGN KEY (profesional_id)
-        REFERENCES profesionales (profesional_id) ON UPDATE CASCADE ON DELETE SET NULL
+        REFERENCES profesionales (profesional_id) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
 -- Tabla resultados
+-- Regla controlada por la aplicacion: la muestra informada debe
+-- pertenecer a la misma orden que el detalle al que responde.
 -- ---------------------------------------------------------------------
 CREATE TABLE resultados (
     resultado_id      INT AUTO_INCREMENT PRIMARY KEY,
@@ -220,12 +229,35 @@ CREATE TABLE resultados (
     CONSTRAINT fk_resultado_detalle FOREIGN KEY (detalle_id)
         REFERENCES orden_detalle (detalle_id) ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_resultado_muestra FOREIGN KEY (muestra_id)
-        REFERENCES muestras (muestra_id) ON UPDATE CASCADE ON DELETE CASCADE,
+        REFERENCES muestras (muestra_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_resultado_carga FOREIGN KEY (cargado_por)
         REFERENCES profesionales (profesional_id) ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT fk_resultado_valida FOREIGN KEY (validado_por)
         REFERENCES profesionales (profesional_id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- Disparadores de inalterabilidad de la bitacora (RNF04)
+-- Una correccion se registra como un evento adicional, nunca editando
+-- ni eliminando un evento existente.
+-- ---------------------------------------------------------------------
+DELIMITER //
+CREATE TRIGGER trg_trazas_no_update
+BEFORE UPDATE ON trazas_muestra
+FOR EACH ROW
+BEGIN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'RNF04: la bitacora de trazabilidad no admite modificaciones';
+END//
+
+CREATE TRIGGER trg_trazas_no_delete
+BEFORE DELETE ON trazas_muestra
+FOR EACH ROW
+BEGIN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'RNF04: la bitacora de trazabilidad no admite eliminaciones';
+END//
+DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- Indices de apoyo a las consultas mas frecuentes (RNF05: rendimiento)

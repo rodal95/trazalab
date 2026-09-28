@@ -72,22 +72,24 @@ INSERT INTO orden_detalle (orden_id, estudio_id, precio) VALUES
     (3,6,10925.00);   -- O-0003 TSH
 
 -- ------------------------------------------------------------- muestras
+-- Las fechas se anclan al dia de ejecucion y respetan el horario de los
+-- turnos (07:30) y de atencion del laboratorio.
 INSERT INTO muestras (codigo_barra, orden_id, tipo_muestra, estado, fecha_extraccion) VALUES
-    ('M-SUE-0001',1,'Suero',        'ANALIZADA', NOW() - INTERVAL 295 MINUTE),
-    ('M-ORI-0002',1,'Orina',        'EN_PROCESO',NOW() - INTERVAL 290 MINUTE),
-    ('M-SAN-0003',2,'Sangre entera','EXTRAIDA',  NOW() - INTERVAL 285 MINUTE);
+    ('M-SUE-0001',1,'Suero',        'ANALIZADA', TIMESTAMP(CURDATE(),'07:36:00')),
+    ('M-ORI-0002',1,'Orina',        'EN_PROCESO',TIMESTAMP(CURDATE(),'07:41:00')),
+    ('M-SAN-0003',2,'Sangre entera','EXTRAIDA',  TIMESTAMP(CURDATE(),'07:46:00'));
 
 -- -------------------------------------------------------- trazabilidad
 INSERT INTO trazas_muestra (muestra_id, estado_anterior, estado_nuevo, fecha_hora, profesional_id, observacion) VALUES
-    (1,NULL,        'GENERADA',  NOW() - INTERVAL 299 MINUTE,3,'Rotulo generado en recepcion'),
-    (1,'GENERADA',  'EXTRAIDA',  NOW() - INTERVAL 295 MINUTE,2,'Extraccion en box 1'),
-    (1,'EXTRAIDA',  'EN_PROCESO',NOW() - INTERVAL 260 MINUTE,1,'Ingresa a autoanalizador'),
-    (1,'EN_PROCESO','ANALIZADA', NOW() - INTERVAL 205 MINUTE,1,'Analisis finalizado'),
-    (2,NULL,        'GENERADA',  NOW() - INTERVAL 299 MINUTE,3,'Rotulo generado en recepcion'),
-    (2,'GENERADA',  'EXTRAIDA',  NOW() - INTERVAL 290 MINUTE,2,'Muestra entregada por el paciente'),
-    (2,'EXTRAIDA',  'EN_PROCESO',NOW() - INTERVAL 250 MINUTE,1,'Sedimento urinario en proceso'),
-    (3,NULL,        'GENERADA',  NOW() - INTERVAL 288 MINUTE,3,'Rotulo generado en recepcion'),
-    (3,'GENERADA',  'EXTRAIDA',  NOW() - INTERVAL 285 MINUTE,2,'Extraccion pediatrica en box 2');
+    (1,NULL,        'GENERADA',  TIMESTAMP(CURDATE(),'07:32:00'),2,'Rotulo generado en box 1'),
+    (1,'GENERADA',  'EXTRAIDA',  TIMESTAMP(CURDATE(),'07:36:00'),2,'Extraccion en box 1'),
+    (1,'EXTRAIDA',  'EN_PROCESO',TIMESTAMP(CURDATE(),'08:11:00'),1,'Ingresa a autoanalizador'),
+    (1,'EN_PROCESO','ANALIZADA', TIMESTAMP(CURDATE(),'09:06:00'),1,'Analisis finalizado'),
+    (2,NULL,        'GENERADA',  TIMESTAMP(CURDATE(),'07:32:00'),2,'Rotulo generado en box 1'),
+    (2,'GENERADA',  'EXTRAIDA',  TIMESTAMP(CURDATE(),'07:41:00'),2,'Muestra entregada por el paciente'),
+    (2,'EXTRAIDA',  'EN_PROCESO',TIMESTAMP(CURDATE(),'08:21:00'),1,'Sedimento urinario en proceso'),
+    (3,NULL,        'GENERADA',  TIMESTAMP(CURDATE(),'07:43:00'),2,'Rotulo generado en box 2'),
+    (3,'GENERADA',  'EXTRAIDA',  TIMESTAMP(CURDATE(),'07:46:00'),2,'Extraccion pediatrica en box 2');
 
 -- ----------------------------------------------------------- resultados
 INSERT INTO resultados (detalle_id, muestra_id, valor, unidad, ref_min, ref_max, cargado_por, validado) VALUES
