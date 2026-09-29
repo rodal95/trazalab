@@ -23,8 +23,7 @@ import trazalab.util.Consola;
  * Clase principal del prototipo TRAZALAB. Presenta el menu de seleccion y
  * coordina las operaciones sobre la fachada de negocio.
  *
- * Trabajo Practico 4 - Proyecto integrador.
- * Seminario de Practica Profesional.
+ * Trabajo Practico 3 - Seminario de Practica Profesional.
  *
  * @author Alday, Rodrigo Matias
  */
@@ -47,7 +46,7 @@ public class MenuPrincipal {
         boolean ejecutando = true;
         while (ejecutando) {
             mostrarMenu();
-            int opcion = Consola.leerEntero("  Elija una opcion: ", 0, 10);
+            int opcion = Consola.leerEntero("  Elija una opcion: ", 0, 9);
             switch (opcion) {
                 case 1 -> registrarPaciente();
                 case 2 -> gestionarTurnos();
@@ -58,7 +57,6 @@ public class MenuPrincipal {
                 case 7 -> emitirInforme();
                 case 8 -> consultarCatalogo();
                 case 9 -> verIndicadores();
-                case 10 -> MenuBaseDatos.ejecutar();
                 case 0 -> {
                     ejecutando = false;
                     System.out.println("\n  Sesion finalizada. Hasta luego, " + usuarioActual.getNombre() + ".\n");
@@ -83,7 +81,6 @@ public class MenuPrincipal {
         System.out.println("  7. Validar y emitir informe");
         System.out.println("  8. Consultar catalogo de practicas");
         System.out.println("  9. Indicadores de gestion");
-        System.out.println(" 10. Modulo persistente MySQL (MVC + JDBC)");
         System.out.println("  0. Salir");
         Consola.separador();
     }

@@ -1,72 +1,49 @@
-# TRAZALAB — Proyecto integrador (Actividad Práctica 4)
+# TRAZALAB — Prototipo de la Actividad Práctica 3
 
-Versión completa del sistema: incorpora la capa de persistencia sobre MySQL aplicando
-los patrones **MVC**, **DAO** y **singleton**.
+Sistema de gestión de turnos y trazabilidad de muestras del Laboratorio Bioquímico San Rafael.
+Esta versión resuelve todo el circuito **en memoria**, sin base de datos.
 
 ## Requisitos
-- JDK 17 o superior (desarrollado y probado con JDK 21).
-- MySQL 8.0 en `localhost:3306`.
-- Conector JDBC incluido en `lib/mysql-connector-j-8.4.0.jar`.
-
-## Preparar la base de datos
-```bash
-mysql -u root -p < sql/01-esquema.sql
-mysql -u root -p < sql/02-datos.sql
-```
-
-## Configurar la conexión
-Si el usuario, la clave o el puerto difieren, editar las constantes de
-`src/trazalab/persistencia/ConexionBD.java`:
-
-```java
-private static final String URL_BASE = "jdbc:mysql://localhost:3306/trazalab?...";
-private static final String USUARIO  = "root";
-private static final String CLAVE    = "";
-```
+- JDK 17 o superior (desarrollado en Visual Studio Code y probado con JDK 21).
 
 ## Compilar
 ```bash
-javac -encoding UTF-8 -cp "lib/mysql-connector-j-8.4.0.jar" -d build $(find src -name "*.java")
+javac -encoding UTF-8 -d build $(find src -name "*.java")
 ```
 
 ## Ejecutar
 ```bash
-# Linux / macOS
-java -cp "build:lib/mysql-connector-j-8.4.0.jar" trazalab.app.MenuPrincipal
-
-# Windows
-java -cp "build;lib\mysql-connector-j-8.4.0.jar" trazalab.app.MenuPrincipal
+java -cp build trazalab.app.MenuPrincipal
 ```
-
-Las opciones 1 a 9 operan en memoria (igual que en la AP3). La opción **10** abre el
-módulo persistente, que trabaja contra MySQL.
-
-La versión entregada con la AP3 —el prototipo en memoria, sin la capa de persistencia—
-queda identificada en el repositorio con la etiqueta `ap3`.
 
 ## Estructura
 ```
 src/trazalab/
-  dominio/        13 archivos — entidades, enum, interfaz Trazable
-  excepciones/     5 archivos — 4 del dominio + PersistenciaException
-  servicio/        2 archivos — Laboratorio y AgendaTurnos
-  util/            4 archivos — Ordenamiento, Busqueda, Consola, ExportadorArchivos
-  persistencia/    5 archivos — ConexionBD, GenericoDAO, PacienteDAO, EstudioDAO, MuestraDAO
-  mvc/             3 archivos — Modelo, Vista y Controlador de trazabilidad
-  app/             2 archivos — MenuPrincipal y MenuBaseDatos
-lib/    conector JDBC
-sql/    scripts de la base de datos (los mismos de la AP2)
-salidas/  certificados de trazabilidad exportados por el sistema
+  dominio/       13 archivos — entidades, enum EstadoMuestra, interfaz Trazable
+  excepciones/    4 archivos — excepciones propias verificadas
+  servicio/       2 archivos — Laboratorio (fachada) y AgendaTurnos
+  util/           3 archivos — Ordenamiento, Busqueda, Consola
+  app/            1 archivo  — MenuPrincipal (main)
 ```
 
-## Recorrido sugerido del módulo persistente (opción 10)
-1. **1** Listar muestras en circuito — consulta con `JOIN` sobre tres tablas.
-2. **2** Registrar evento sobre `M-SAN-0003`, estado 3 → transacción sobre dos tablas.
-   Repetir sobre `M-SUE-0001` con estado 2 → la transición inválida se rechaza.
-3. **3** Consultar catálogo — `ArrayList` convertido a arreglo y ordenado con quicksort.
-4. **4** Actualizar precios (por ejemplo 15 %) → `UPDATE` masivo.
-5. **5** Indicadores calculados con `GROUP BY` en el motor.
-6. **7** Exportar el certificado de trazabilidad a `salidas/`.
+## Recorrido sugerido para probarlo
+1. Opción **2**: otorgar un turno al DNI `30111222`, registrar su llegada (el paciente
+   ingresa a la **cola** de la sala de espera) y llamar al siguiente paciente.
+2. Opción **3**: registrar una orden para el DNI `30111222` con las prácticas `GLU01`, `COL01` y `ORI01`.
+3. Opción **4**: intentar la extracción de la orden `O-0001` declarando **4** horas de ayuno
+   → se lanza `AyunoInsuficienteException`.
+4. Opción **4** otra vez, declarando **12** horas → la extraccionista genera dos muestras
+   (suero y orina). Una tercera vez se rechaza: la orden ya tiene sus muestras.
+5. Opción **5**: avanzar `M-SUE-0001` al estado 3 (EN_PROCESO). Probar además un retroceso:
+   se rechaza la transición.
+6. Opción **6**: cargar los resultados de la muestra (por ejemplo 178 mg/dL con rango 70–110).
+   Si se repite, los resultados ya cargados se omiten.
+7. Opción **7**: la validación se rechaza mientras la muestra no esté ANALIZADA.
+8. Opción **5**: avanzar `M-SUE-0001` al estado 4 (ANALIZADA) y volver a la opción **7**:
+   se valida el informe y la muestra pasa a INFORMADA.
+9. Opción **9**: ver los indicadores de gestión y las últimas acciones de la **pila**.
 
-Si el servidor MySQL está detenido, el módulo informa el error y el resto del sistema
-sigue funcionando en memoria.
+También puede escribirse una letra donde se espera un número: el menú captura
+`InputMismatchException` y continúa.
+
+Pacientes precargados: `30111222` (Gómez), `45222333` (Suárez, pediátrico) y `12888999` (Ríos).
