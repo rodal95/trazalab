@@ -8,7 +8,7 @@ package trazalab.dominio;
  */
 public enum EstadoMuestra {
 
-    GENERADA("Generada en recepcion"),
+    GENERADA("Rotulo generado, pendiente de extraccion"),
     EXTRAIDA("Extraida al paciente"),
     EN_PROCESO("En proceso analitico"),
     ANALIZADA("Analizada, pendiente de validacion"),

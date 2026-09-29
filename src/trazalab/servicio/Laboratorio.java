@@ -37,7 +37,7 @@ public class Laboratorio {
     private final List<Orden> ordenes;
     private final List<Muestra> muestras;
     private final List<Resultado> resultados;
-    /** ESTRUCTURA PILA (LIFO): historial de acciones para deshacer la ultima. */
+    /** ESTRUCTURA PILA (LIFO): historial de acciones, la mas reciente en el tope. */
     private final Deque<String> pilaDeAcciones;
 
     private final AgendaTurnos agenda;
@@ -120,13 +120,29 @@ public class Laboratorio {
     // ------------------------------------------------------------------ muestras
 
     /**
-     * Genera una muestra por cada tipo requerido por la orden, validando el ayuno
-     * declarado por el paciente.
+     * Genera una muestra por cada tipo requerido por la orden que todavia no tenga
+     * una muestra vigente, validando el ayuno declarado por el paciente. Una
+     * muestra anulada deja de ser vigente, lo que permite la reextraccion.
      *
+     * @throws MuestraInvalidaException si la orden no tiene practicas o ya tiene sus muestras.
      * @throws AyunoInsuficienteException si el ayuno declarado no alcanza.
      */
     public List<Muestra> generarMuestras(Orden orden, int horasAyunoDeclaradas, String responsable)
-            throws AyunoInsuficienteException {
+            throws MuestraInvalidaException, AyunoInsuficienteException {
+        if (orden.getEstudios().isEmpty()) {
+            throw new MuestraInvalidaException("La orden " + orden.getNumero()
+                    + " no tiene practicas: no hay muestras que extraer.");
+        }
+        List<String> tiposPendientes = new ArrayList<>();
+        for (String tipo : orden.obtenerTiposDeMuestra()) {
+            if (buscarMuestraVigente(orden, tipo) == null) {
+                tiposPendientes.add(tipo);
+            }
+        }
+        if (tiposPendientes.isEmpty()) {
+            throw new MuestraInvalidaException("La orden " + orden.getNumero()
+                    + " ya tiene sus muestras. Para repetir una extraccion, primero se anula la muestra.");
+        }
         int requeridas = orden.calcularAyunoRequerido();
         if (horasAyunoDeclaradas < requeridas) {
             throw new AyunoInsuficienteException(
@@ -135,7 +151,7 @@ public class Laboratorio {
                     requeridas, horasAyunoDeclaradas);
         }
         List<Muestra> generadas = new ArrayList<>();
-        for (String tipo : orden.obtenerTiposDeMuestra()) {
+        for (String tipo : tiposPendientes) {
             contadorMuestras++;
             String codigo = String.format("M-%s-%04d", tipo.substring(0, 3).toUpperCase(), contadorMuestras);
             Muestra muestra = new Muestra(codigo, tipo, orden, responsable);
@@ -151,6 +167,27 @@ public class Laboratorio {
         return Busqueda.linealPorCodigoBarra(muestras, codigoBarra);
     }
 
+    /** Devuelve las muestras generadas para una orden, en el orden en que se generaron. */
+    public List<Muestra> muestrasDeOrden(Orden orden) {
+        List<Muestra> propias = new ArrayList<>();
+        for (Muestra muestra : muestras) {
+            if (muestra.getOrden().equals(orden)) {
+                propias.add(muestra);
+            }
+        }
+        return propias;
+    }
+
+    /** Devuelve la muestra no anulada de un tipo para la orden, o null si no la hay. */
+    private Muestra buscarMuestraVigente(Orden orden, String tipoMuestra) {
+        for (Muestra muestra : muestrasDeOrden(orden)) {
+            if (muestra.getTipoMuestra().equals(tipoMuestra) && muestra.getEstado() != EstadoMuestra.ANULADA) {
+                return muestra;
+            }
+        }
+        return null;
+    }
+
     public void avanzarMuestra(Muestra muestra, EstadoMuestra destino, String responsable, String observacion)
             throws MuestraInvalidaException {
         muestra.cambiarEstado(destino, responsable, observacion);
@@ -159,12 +196,41 @@ public class Laboratorio {
 
     // ---------------------------------------------------------------- resultados
 
+    /**
+     * Registra el resultado de un estudio sobre una muestra en proceso analitico.
+     *
+     * @throws MuestraInvalidaException si la muestra no esta en proceso o analizada, si el
+     *         estudio no corresponde a la muestra o si el resultado ya fue cargado.
+     */
     public Resultado cargarResultado(Muestra muestra, Estudio estudio, double valor, String unidad,
-                                     double refMin, double refMax) {
+                                     double refMin, double refMax) throws MuestraInvalidaException {
+        if (muestra.getEstado() != EstadoMuestra.EN_PROCESO && muestra.getEstado() != EstadoMuestra.ANALIZADA) {
+            throw new MuestraInvalidaException("La muestra " + muestra.getCodigoBarra() + " esta en estado "
+                    + muestra.getEstado() + ": los resultados se cargan en EN_PROCESO o ANALIZADA.");
+        }
+        if (!muestra.getOrden().getEstudios().contains(estudio)
+                || !estudio.getTipoMuestra().equals(muestra.getTipoMuestra())) {
+            throw new MuestraInvalidaException("El estudio " + estudio.getCodigo()
+                    + " no se procesa sobre la muestra " + muestra.getCodigoBarra() + ".");
+        }
+        if (tieneResultado(muestra, estudio)) {
+            throw new MuestraInvalidaException("El resultado de " + estudio.getCodigo() + " en la muestra "
+                    + muestra.getCodigoBarra() + " ya fue cargado.");
+        }
         Resultado resultado = new Resultado(muestra, estudio, valor, unidad, refMin, refMax);
         resultados.add(resultado);
         pilaDeAcciones.push("Carga de resultado " + estudio.getCodigo() + " en " + muestra.getCodigoBarra());
         return resultado;
+    }
+
+    /** Indica si ya se cargo el resultado de un estudio sobre una muestra. */
+    public boolean tieneResultado(Muestra muestra, Estudio estudio) {
+        for (Resultado resultado : resultados) {
+            if (resultado.getMuestra().equals(muestra) && resultado.getEstudio().equals(estudio)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Devuelve los resultados de una orden, ordenados por codigo de estudio. */
@@ -179,23 +245,80 @@ public class Laboratorio {
         return propios;
     }
 
-    /** Valida todos los resultados de una orden si el profesional esta habilitado. */
-    public int validarResultadosDeOrden(Orden orden, Profesional bioquimico) {
+    /**
+     * Valida los resultados de una orden si el profesional esta habilitado. Solo se
+     * validan las muestras ANALIZADA que tienen cargados todos sus resultados; cada
+     * una pasa a INFORMADA. Las demas quedan pendientes para un informe posterior.
+     *
+     * @return cantidad de resultados validados en esta operacion (0 si no habia pendientes).
+     * @throws MuestraInvalidaException si hay resultados pendientes pero ninguna muestra
+     *         de la orden esta en condiciones de ser informada.
+     */
+    public int validarResultadosDeOrden(Orden orden, Profesional bioquimico) throws MuestraInvalidaException {
         if (!bioquimico.puedeValidarResultados()) {
             return 0;
         }
-        int validados = 0;
+        boolean hayPendientes = false;
         for (Resultado resultado : resultadosDeOrden(orden)) {
             if (!resultado.isValidado()) {
-                resultado.validar(bioquimico);
-                validados++;
+                hayPendientes = true;
             }
         }
-        if (validados > 0) {
-            orden.setEstado("Informada");
-            pilaDeAcciones.push("Validacion de " + validados + " resultado(s) de " + orden.getNumero());
+        if (!hayPendientes) {
+            return 0;
         }
+        int validados = 0;
+        String primerMotivo = null;
+        for (Muestra muestra : muestrasDeOrden(orden)) {
+            if (muestra.getEstado() == EstadoMuestra.INFORMADA || muestra.getEstado() == EstadoMuestra.ANULADA) {
+                continue;
+            }
+            String motivo = motivoParaNoInformar(muestra);
+            if (motivo != null) {
+                if (primerMotivo == null) {
+                    primerMotivo = motivo;
+                }
+                continue;
+            }
+            for (Resultado resultado : resultados) {
+                if (resultado.getMuestra().equals(muestra) && !resultado.isValidado()) {
+                    resultado.validar(bioquimico);
+                    validados++;
+                }
+            }
+            muestra.cambiarEstado(EstadoMuestra.INFORMADA, bioquimico.getNombreCompleto(),
+                    "Resultados validados, informe liberado");
+        }
+        if (validados == 0) {
+            throw new MuestraInvalidaException("No se puede validar la orden " + orden.getNumero() + ": "
+                    + (primerMotivo != null ? primerMotivo : "sus muestras ya estan informadas o anuladas") + ".");
+        }
+        boolean completa = true;
+        for (Muestra muestra : muestrasDeOrden(orden)) {
+            if (muestra.getEstado() != EstadoMuestra.INFORMADA && muestra.getEstado() != EstadoMuestra.ANULADA) {
+                completa = false;
+            }
+        }
+        orden.setEstado(completa ? "Informada" : "Informada en parte");
+        pilaDeAcciones.push("Validacion de " + validados + " resultado(s) de " + orden.getNumero());
         return validados;
+    }
+
+    /**
+     * Indica por que una muestra todavia no puede informarse: no esta ANALIZADA o le
+     * falta algun resultado. Devuelve null si esta en condiciones de informarse.
+     */
+    private String motivoParaNoInformar(Muestra muestra) {
+        if (muestra.getEstado() != EstadoMuestra.ANALIZADA) {
+            return "la muestra " + muestra.getCodigoBarra() + " esta en " + muestra.getEstado()
+                    + " y debe estar ANALIZADA";
+        }
+        for (Estudio estudio : muestra.getOrden().getEstudios()) {
+            if (estudio.getTipoMuestra().equals(muestra.getTipoMuestra()) && !tieneResultado(muestra, estudio)) {
+                return "falta el resultado de " + estudio.getCodigo() + " en la muestra " + muestra.getCodigoBarra();
+            }
+        }
+        return null;
     }
 
     // ---------------------------------------------------------------- indicadores
@@ -206,7 +329,7 @@ public class Laboratorio {
         int contadas = 0;
         for (Muestra muestra : muestras) {
             long tat = muestra.calcularTatMinutos();
-            if (tat >= 0) {
+            if (muestra.getEstado() == EstadoMuestra.INFORMADA && tat >= 0) {
                 suma += tat;
                 contadas++;
             }
@@ -225,9 +348,24 @@ public class Laboratorio {
         return contador;
     }
 
-    /** Desapila y devuelve la ultima accion registrada (LIFO). */
-    public String deshacerUltimaAccion() {
-        return pilaDeAcciones.isEmpty() ? null : pilaDeAcciones.pop();
+    /** Devuelve la accion en el tope de la pila, la mas reciente, sin quitarla. */
+    public String consultarUltimaAccion() {
+        return pilaDeAcciones.peek();
+    }
+
+    /**
+     * Devuelve hasta 'cantidad' acciones recorriendo la pila desde el tope (LIFO):
+     * la primera de la lista es la mas reciente.
+     */
+    public List<String> consultarUltimasAcciones(int cantidad) {
+        List<String> recientes = new ArrayList<>();
+        for (String accion : pilaDeAcciones) {
+            if (recientes.size() == cantidad) {
+                break;
+            }
+            recientes.add(accion);
+        }
+        return recientes;
     }
 
     public LocalDateTime ahora() {
@@ -262,9 +400,5 @@ public class Laboratorio {
 
     public AgendaTurnos getAgenda() {
         return agenda;
-    }
-
-    public Deque<String> getPilaDeAcciones() {
-        return pilaDeAcciones;
     }
 }

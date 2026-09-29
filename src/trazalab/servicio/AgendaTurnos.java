@@ -69,8 +69,31 @@ public class AgendaTurnos {
         return contador;
     }
 
-    /** El paciente se presenta: ingresa al final de la cola de espera. */
-    public void registrarPresente(Turno turno) {
+    /**
+     * Busca el turno otorgado de un paciente que todavia no se presento.
+     *
+     * @throws TurnoNoDisponibleException si el paciente no tiene un turno pendiente.
+     */
+    public Turno buscarTurnoPendiente(String dni) throws TurnoNoDisponibleException {
+        for (Turno turno : turnosOtorgados) {
+            if (turno.getPaciente().getDni().equals(dni) && "Otorgado".equals(turno.getEstado())) {
+                return turno;
+            }
+        }
+        throw new TurnoNoDisponibleException("El paciente con DNI " + dni
+                + " no tiene un turno otorgado pendiente de presentarse.");
+    }
+
+    /**
+     * El paciente se presenta: ingresa al final de la cola de espera.
+     *
+     * @throws TurnoNoDisponibleException si el turno ya fue presentado o atendido.
+     */
+    public void registrarPresente(Turno turno) throws TurnoNoDisponibleException {
+        if (!"Otorgado".equals(turno.getEstado())) {
+            throw new TurnoNoDisponibleException("El turno " + turno.getNumero()
+                    + " ya figura como " + turno.getEstado() + ".");
+        }
         turno.confirmarPresente();
         salaDeEspera.offer(turno);
     }
@@ -89,8 +112,9 @@ public class AgendaTurnos {
         return salaDeEspera.size();
     }
 
-    public Queue<Turno> getSalaDeEspera() {
-        return salaDeEspera;
+    /** Copia de la sala de espera en orden de atencion: el primero es el proximo en ser llamado. */
+    public List<Turno> verSalaDeEspera() {
+        return new ArrayList<>(salaDeEspera);
     }
 
     public List<Turno> getTurnosOtorgados() {

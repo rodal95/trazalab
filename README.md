@@ -41,6 +41,9 @@ java -cp "build;lib\mysql-connector-j-8.4.0.jar" trazalab.app.MenuPrincipal
 Las opciones 1 a 9 operan en memoria (igual que en la AP3). La opción **10** abre el
 módulo persistente, que trabaja contra MySQL.
 
+La versión entregada con la AP3 —el prototipo en memoria, sin la capa de persistencia—
+queda identificada en el repositorio con la etiqueta `ap3`.
+
 ## Estructura
 ```
 src/trazalab/

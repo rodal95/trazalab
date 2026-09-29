@@ -1,8 +1,9 @@
 package trazalab.excepciones;
 
 /**
- * Excepcion propia VERIFICADA que se lanza ante una transicion de estado no
- * permitida en el circuito de la muestra.
+ * Excepcion propia VERIFICADA que se lanza ante una operacion no permitida sobre
+ * una muestra: una transicion de estado fuera del circuito, una extraccion
+ * repetida, un resultado cargado dos veces o una validacion prematura.
  *
  * @author Alday, Rodrigo Matias
  */

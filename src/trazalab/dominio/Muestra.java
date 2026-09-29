@@ -71,8 +71,24 @@ public class Muestra implements Trazable {
         return codigoBarra;
     }
 
+    /**
+     * Agrega al historial el evento de la transicion que acaba de aplicar
+     * cambiarEstado(). El metodo es publico porque lo exige la interfaz Trazable,
+     * pero rechaza cualquier evento que no documente esa transicion: desde fuera
+     * de la clase no se puede agregar un evento que no haya ocurrido.
+     *
+     * @throws IllegalArgumentException si el evento no corresponde a la ultima transicion.
+     */
     @Override
     public void registrarEvento(EventoTraza evento) {
+        EventoTraza ultimo = getUltimoEvento();
+        boolean esLaTransicionAplicada = evento.getEstadoNuevo() == estado
+                && evento.getEstadoAnterior() != estado
+                && ultimo != null && evento.getEstadoAnterior() == ultimo.getEstadoNuevo();
+        if (!esLaTransicionAplicada) {
+            throw new IllegalArgumentException("El evento no corresponde a la ultima transicion de "
+                    + codigoBarra + ": los estados solo cambian mediante cambiarEstado().");
+        }
         historial.add(evento);
     }
 

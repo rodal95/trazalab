@@ -72,7 +72,7 @@ public abstract class Estudio implements Comparable<Estudio> {
 
     @Override
     public String toString() {
-        return String.format("%-6s %-32s %-14s $%9.2f  %s",
+        return String.format("%-6s %-34s %-18s $%9.2f  %s",
                 codigo, nombre, area, calcularPrecio(),
                 requiereAyuno() ? horasAyuno + " h ayuno" : "sin ayuno");
     }

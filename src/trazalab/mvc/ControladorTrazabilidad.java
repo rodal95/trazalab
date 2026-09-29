@@ -73,7 +73,7 @@ public class ControladorTrazabilidad {
             // aplicar el algoritmo de ordenacion propio.
             Estudio[] catalogo = modelo.obtenerCatalogoComoArreglo();
             if (catalogo.length == 0) {
-                vista.mostrarMensaje("El catalogo esta vacio. Ejecute el script 02_datos.sql.");
+                vista.mostrarMensaje("El catalogo esta vacio. Ejecute el script 02-datos.sql.");
                 return;
             }
             Ordenamiento.quickSortPorPrecioDesc(catalogo, 0, catalogo.length - 1);

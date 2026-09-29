@@ -31,7 +31,7 @@ public class MenuBaseDatos {
         } catch (PersistenciaException e) {
             System.err.println("  [X] " + e.getMessage());
             System.err.println("      Verifique que el servidor MySQL este iniciado y que la base");
-            System.err.println("      'trazalab' exista (scripts sql/01_esquema.sql y sql/02_datos.sql).");
+            System.err.println("      'trazalab' exista (scripts sql/01-esquema.sql y sql/02-datos.sql).");
             System.out.println("\n  El resto del sistema sigue operativo en memoria.");
             return;
         }

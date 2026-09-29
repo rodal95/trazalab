@@ -91,8 +91,9 @@ public class Resultado implements Comparable<Resultado> {
     @Override
     public String toString() {
         String marca = esCritico() ? "  ** CRITICO **" : (estaFueraDeRango() ? "  * fuera de rango" : "");
-        return String.format("%-6s %-30s %9.2f %-8s [%.2f - %.2f] %s%s",
+        String referencia = String.format("[%.2f - %.2f]", referenciaMin, referenciaMax);
+        return String.format("%-6s %-30s %9.2f %-8s %-18s %s%s",
                 estudio.getCodigo(), estudio.getNombre(), valor, unidad,
-                referenciaMin, referenciaMax, validado ? "validado" : "pendiente", marca);
+                referencia, validado ? "validado" : "pendiente", marca);
     }
 }

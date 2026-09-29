@@ -36,8 +36,8 @@ public class Orden {
     /** Suma polimorfica: cada estudio resuelve su propio precio. */
     public double calcularTotal() {
         double total = 0;
-        for (Estudio estudio : estudios) {
-            total += estudio.calcularPrecio();
+        for (Estudio estudio : estudios) {      // tipo estatico: la superclase abstracta
+            total += estudio.calcularPrecio();  // se resuelve en tiempo de ejecucion
         }
         return total;
     }
@@ -105,8 +105,9 @@ public class Orden {
 
     @Override
     public String toString() {
-        return String.format("%-8s %-26s %2d estudios  ayuno %2d h  total $%.2f  %s",
+        return String.format("%-8s %-26s %2d %-8s  ayuno %2d h  total $%.2f  %s",
                 numero, paciente.getNombreCompleto(), estudios.size(),
+                estudios.size() == 1 ? "estudio" : "estudios",
                 calcularAyunoRequerido(), calcularTotal(), estado);
     }
 }
