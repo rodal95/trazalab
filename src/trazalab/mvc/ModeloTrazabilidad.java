@@ -38,8 +38,10 @@ public class ModeloTrazabilidad {
     }
 
     /**
-     * Regla de negocio aplicada antes de persistir: solo se aceptan las
-     * transiciones validas del circuito, definidas en el enum del dominio.
+     * Reglas de negocio aplicadas antes de persistir: solo se aceptan las
+     * transiciones validas del circuito, definidas en el enum del dominio, y
+     * la muestra no pasa a INFORMADA con un evento manual (RF18): llega a ese
+     * estado cuando un bioquimico valida sus resultados.
      */
     public void registrarCambioDeEstado(MuestraDAO.FilaMuestra muestra, EstadoMuestra destino,
                                         int profesionalId, String observacion)
@@ -48,6 +50,10 @@ public class ModeloTrazabilidad {
         if (!actual.puedeTransicionarA(destino)) {
             throw new PersistenciaException("La muestra " + muestra.codigoBarra + " esta en estado "
                     + actual + " y no puede pasar a " + destino + ".");
+        }
+        if (destino == EstadoMuestra.INFORMADA) {
+            throw new PersistenciaException("La muestra " + muestra.codigoBarra + " pasa a INFORMADA "
+                    + "recien cuando un bioquimico valida sus resultados, no con un evento manual.");
         }
         muestraDAO.cambiarEstado(muestra.id, actual, destino, profesionalId, observacion);
     }

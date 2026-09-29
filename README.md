@@ -63,6 +63,8 @@ salidas/  certificados de trazabilidad exportados por el sistema
 1. **1** Listar muestras en circuito — consulta con `JOIN` sobre tres tablas.
 2. **2** Registrar evento sobre `M-SAN-0003`, estado 3 → transacción sobre dos tablas.
    Repetir sobre `M-SUE-0001` con estado 2 → la transición inválida se rechaza.
+   Con estado 5 también se rechaza: la muestra pasa a INFORMADA recién cuando un
+   bioquímico valida sus resultados, no con un evento manual.
 3. **3** Consultar catálogo — `ArrayList` convertido a arreglo y ordenado con quicksort.
 4. **4** Actualizar precios (por ejemplo 15 %) → `UPDATE` masivo.
 5. **5** Indicadores calculados con `GROUP BY` en el motor.

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import trazalab.dominio.EstadoMuestra;
@@ -17,6 +18,9 @@ import trazalab.excepciones.PersistenciaException;
  * @author Alday, Rodrigo Matias
  */
 public class MuestraDAO {
+
+    /** Formato de fecha y hora de los eventos, con segundos en todos los casos. */
+    private static final DateTimeFormatter FMT_EVENTO = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private final Connection conexion;
 
@@ -159,7 +163,7 @@ public class MuestraDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     historial.add(String.format("%s  %-10s -> %-10s  %-20s %-15s %s",
-                            rs.getTimestamp("fecha_hora").toLocalDateTime(),
+                            rs.getTimestamp("fecha_hora").toLocalDateTime().format(FMT_EVENTO),
                             rs.getString("desde"), rs.getString("hacia"),
                             rs.getString("responsable") == null ? "(sin dato)" : rs.getString("responsable"),
                             rs.getString("rol") == null ? "" : rs.getString("rol"),

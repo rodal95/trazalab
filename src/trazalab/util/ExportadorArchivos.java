@@ -22,6 +22,7 @@ public final class ExportadorArchivos {
 
     private static final String CARPETA = "salidas";
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final DateTimeFormatter FMT_EMISION = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private ExportadorArchivos() {
     }
@@ -38,8 +39,9 @@ public final class ExportadorArchivos {
         if (!carpeta.exists() && !carpeta.mkdirs()) {
             throw new IOException("No se pudo crear la carpeta " + carpeta.getAbsolutePath());
         }
+        LocalDateTime emision = LocalDateTime.now();
         File archivo = new File(carpeta,
-                "trazabilidad-" + codigoBarra + "-" + LocalDateTime.now().format(FMT) + ".txt");
+                "trazabilidad-" + codigoBarra + "-" + emision.format(FMT) + ".txt");
 
         // try-with-resources: cierra los flujos aunque se produzca una excepcion.
         try (PrintWriter salida = new PrintWriter(new BufferedWriter(new FileWriter(archivo)))) {
@@ -50,7 +52,7 @@ public final class ExportadorArchivos {
             salida.println("Muestra   : " + codigoBarra);
             salida.println("Orden     : " + orden);
             salida.println("Paciente  : " + paciente);
-            salida.println("Emitido   : " + LocalDateTime.now());
+            salida.println("Emitido   : " + emision.format(FMT_EMISION));
             salida.println("-".repeat(78));
             salida.println("HISTORIAL DE EVENTOS");
             salida.println("-".repeat(78));

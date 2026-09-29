@@ -91,7 +91,8 @@ public class ControladorTrazabilidad {
         vista.mostrarTitulo("Actualizacion de precios de lista");
         try {
             double porcentaje = vista.solicitarPorcentaje();
-            if (!vista.confirmar("Confirma aplicar un " + porcentaje + " % a todo el catalogo?")) {
+            if (!vista.confirmar("Confirma aplicar un " + String.format("%.1f", porcentaje)
+                    + " % a todo el catalogo?")) {
                 vista.mostrarMensaje("Operacion cancelada.");
                 return;
             }
