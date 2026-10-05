@@ -26,14 +26,6 @@ public class Turno {
         this.estado = "Otorgado";
     }
 
-    public void confirmarPresente() {
-        this.estado = "Presente";
-    }
-
-    public void marcarAtendido() {
-        this.estado = "Atendido";
-    }
-
     public String getNumero() {
         return numero;
     }
@@ -52,6 +44,10 @@ public class Turno {
 
     public String getEstado() {
         return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     @Override

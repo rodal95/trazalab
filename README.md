@@ -49,7 +49,7 @@ queda identificada en el repositorio con la etiqueta `ap3`.
 src/trazalab/
   dominio/        13 archivos — entidades, enum, interfaz Trazable
   excepciones/     5 archivos — 4 del dominio + PersistenciaException
-  servicio/        2 archivos — Laboratorio y AgendaTurnos
+  servicio/        3 archivos — Laboratorio (control), AgendaTurnos y BitacoraTrazabilidad
   util/            4 archivos — Ordenamiento, Busqueda, Consola, ExportadorArchivos
   persistencia/    5 archivos — ConexionBD, GenericoDAO, PacienteDAO, EstudioDAO, MuestraDAO
   mvc/             3 archivos — Modelo, Vista y Controlador de trazabilidad

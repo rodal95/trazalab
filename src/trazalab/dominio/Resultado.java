@@ -41,11 +41,6 @@ public class Resultado implements Comparable<Resultado> {
         return valor > referenciaMax * 2 || valor < referenciaMin / 2;
     }
 
-    public void validar(Profesional bioquimico) {
-        this.validado = true;
-        this.validadoPor = bioquimico.getNombreCompleto() + " (Mat. " + bioquimico.getMatricula() + ")";
-    }
-
     /** Orden natural: por codigo de estudio, para ordenar el informe. */
     @Override
     public int compareTo(Resultado otro) {
@@ -84,8 +79,16 @@ public class Resultado implements Comparable<Resultado> {
         return validado;
     }
 
+    public void setValidado(boolean validado) {
+        this.validado = validado;
+    }
+
     public String getValidadoPor() {
         return validadoPor;
+    }
+
+    public void setValidadoPor(String validadoPor) {
+        this.validadoPor = validadoPor;
     }
 
     @Override

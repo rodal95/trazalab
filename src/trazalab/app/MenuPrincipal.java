@@ -263,7 +263,7 @@ public class MenuPrincipal {
         try {
             Muestra muestra = laboratorio.buscarMuestra(Consola.leerTexto("  Codigo de barra: "));
             System.out.println("\n  Historial de trazabilidad de " + muestra.getIdentificacion() + ":");
-            muestra.getHistorial().forEach(evento -> System.out.println("    " + evento));
+            laboratorio.historialDe(muestra).forEach(evento -> System.out.println("    " + evento));
             Consola.separador();
             System.out.println("  Estados posibles:");
             EstadoMuestra[] estados = EstadoMuestra.values();
@@ -275,7 +275,7 @@ public class MenuPrincipal {
             laboratorio.avanzarMuestra(muestra, estados[opcion - 1],
                     usuarioActual.getNombreCompleto(), observacion);
             System.out.println("\n  [OK] " + muestra);
-            System.out.println("  TAT acumulado: " + muestra.calcularTatMinutos() + " minutos.");
+            System.out.println("  TAT acumulado: " + laboratorio.calcularTatMinutos(muestra) + " minutos.");
         } catch (EntidadNoEncontradaException e) {
             System.out.println("  [X] " + e.getMessage());
         } catch (MuestraInvalidaException e) {

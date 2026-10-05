@@ -94,7 +94,7 @@ public class AgendaTurnos {
             throw new TurnoNoDisponibleException("El turno " + turno.getNumero()
                     + " ya figura como " + turno.getEstado() + ".");
         }
-        turno.confirmarPresente();
+        turno.setEstado("Presente");
         salaDeEspera.offer(turno);
     }
 
@@ -104,7 +104,7 @@ public class AgendaTurnos {
         if (turno == null) {
             throw new TurnoNoDisponibleException("No hay pacientes en la sala de espera.");
         }
-        turno.marcarAtendido();
+        turno.setEstado("Atendido");
         return turno;
     }
 

@@ -1,5 +1,6 @@
 package trazalab.servicio;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import trazalab.dominio.EstadoMuestra;
 import trazalab.dominio.Estudio;
 import trazalab.dominio.EstudioEspecializado;
 import trazalab.dominio.EstudioRutina;
+import trazalab.dominio.EventoTraza;
 import trazalab.dominio.Muestra;
 import trazalab.dominio.Orden;
 import trazalab.dominio.Paciente;
@@ -23,6 +25,10 @@ import trazalab.util.Ordenamiento;
 /**
  * Fachada de negocio del laboratorio. Concentra las reglas del circuito
  * preanalitico y analitico y administra las colecciones del prototipo.
+ *
+ * Es la clase de CONTROL: decide y aplica los cambios de estado de las
+ * entidades (muestras, resultados) y registra cada transicion en la bitacora.
+ * Las entidades solo guardan sus datos; no se gestionan a si mismas.
  *
  * @author Alday, Rodrigo Matias
  */
@@ -41,6 +47,7 @@ public class Laboratorio {
     private final Deque<String> pilaDeAcciones;
 
     private final AgendaTurnos agenda;
+    private final BitacoraTrazabilidad bitacora;
     private int contadorOrdenes;
     private int contadorMuestras;
 
@@ -52,6 +59,7 @@ public class Laboratorio {
         this.resultados = new ArrayList<>();
         this.pilaDeAcciones = new ArrayDeque<>();
         this.agenda = new AgendaTurnos();
+        this.bitacora = new BitacoraTrazabilidad();
         this.catalogo = construirCatalogo();
         // El catalogo se ordena por codigo para habilitar la busqueda binaria.
         Ordenamiento.insercionPorCodigo(catalogo);
@@ -154,7 +162,9 @@ public class Laboratorio {
         for (String tipo : tiposPendientes) {
             contadorMuestras++;
             String codigo = String.format("M-%s-%04d", tipo.substring(0, 3).toUpperCase(), contadorMuestras);
-            Muestra muestra = new Muestra(codigo, tipo, orden, responsable);
+            Muestra muestra = new Muestra(codigo, tipo, orden);
+            bitacora.registrar(muestra, new EventoTraza(null, EstadoMuestra.GENERADA, responsable,
+                    "Rotulo generado para la orden " + orden.getNumero()));
             muestras.add(muestra);
             generadas.add(muestra);
         }
@@ -188,10 +198,51 @@ public class Laboratorio {
         return null;
     }
 
+    /**
+     * Avanza una muestra a otro estado del circuito, si la transicion es valida.
+     *
+     * @throws MuestraInvalidaException si la transicion no es valida en el circuito.
+     */
     public void avanzarMuestra(Muestra muestra, EstadoMuestra destino, String responsable, String observacion)
             throws MuestraInvalidaException {
-        muestra.cambiarEstado(destino, responsable, observacion);
+        aplicarTransicion(muestra, destino, responsable, observacion);
         pilaDeAcciones.push("Muestra " + muestra.getCodigoBarra() + " -> " + destino);
+    }
+
+    /**
+     * Valida la transicion contra la secuencia del circuito, actualiza el estado de
+     * la muestra y documenta el cambio en la bitacora.
+     */
+    private void aplicarTransicion(Muestra muestra, EstadoMuestra destino, String responsable,
+                                   String observacion) throws MuestraInvalidaException {
+        EstadoMuestra actual = muestra.getEstado();
+        if (!actual.puedeTransicionarA(destino)) {
+            throw new MuestraInvalidaException("La muestra " + muestra.getCodigoBarra()
+                    + " esta en estado " + actual + " y no puede pasar a " + destino + ".");
+        }
+        EventoTraza evento = new EventoTraza(actual, destino, responsable, observacion);
+        muestra.setEstado(destino);
+        if (destino == EstadoMuestra.EXTRAIDA) {
+            muestra.setFechaExtraccion(LocalDateTime.now());
+        }
+        bitacora.registrar(muestra, evento);
+    }
+
+    /** Historial de trazabilidad de una muestra, del evento mas antiguo al mas reciente. */
+    public List<EventoTraza> historialDe(Muestra muestra) {
+        return bitacora.historialDe(muestra);
+    }
+
+    /**
+     * Tiempo de respuesta (TAT) en minutos entre la extraccion y el ultimo evento
+     * de la muestra. Devuelve -1 si la muestra todavia no fue extraida.
+     */
+    public long calcularTatMinutos(Muestra muestra) {
+        if (muestra.getFechaExtraccion() == null) {
+            return -1;
+        }
+        EventoTraza ultimo = bitacora.ultimoEventoDe(muestra);
+        return Duration.between(muestra.getFechaExtraccion(), ultimo.getFechaHora()).toMinutes();
     }
 
     // ---------------------------------------------------------------- resultados
@@ -282,11 +333,13 @@ public class Laboratorio {
             }
             for (Resultado resultado : resultados) {
                 if (resultado.getMuestra().equals(muestra) && !resultado.isValidado()) {
-                    resultado.validar(bioquimico);
+                    resultado.setValidado(true);
+                    resultado.setValidadoPor(bioquimico.getNombreCompleto()
+                            + " (Mat. " + bioquimico.getMatricula() + ")");
                     validados++;
                 }
             }
-            muestra.cambiarEstado(EstadoMuestra.INFORMADA, bioquimico.getNombreCompleto(),
+            aplicarTransicion(muestra, EstadoMuestra.INFORMADA, bioquimico.getNombreCompleto(),
                     "Resultados validados, informe liberado");
         }
         if (validados == 0) {
@@ -328,7 +381,7 @@ public class Laboratorio {
         long suma = 0;
         int contadas = 0;
         for (Muestra muestra : muestras) {
-            long tat = muestra.calcularTatMinutos();
+            long tat = calcularTatMinutos(muestra);
             if (muestra.getEstado() == EstadoMuestra.INFORMADA && tat >= 0) {
                 suma += tat;
                 contadas++;
@@ -400,5 +453,9 @@ public class Laboratorio {
 
     public AgendaTurnos getAgenda() {
         return agenda;
+    }
+
+    public BitacoraTrazabilidad getBitacora() {
+        return bitacora;
     }
 }

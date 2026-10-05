@@ -1,15 +1,14 @@
 package trazalab.dominio;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import trazalab.excepciones.MuestraInvalidaException;
 
 /**
  * Muestra biologica extraida a un paciente. IMPLEMENTA la interfaz Trazable:
- * cada cambio de estado queda documentado en su historial.
+ * su recorrido queda documentado en la bitacora de trazabilidad.
+ *
+ * Es una entidad: guarda sus datos y los expone. No cambia su propio estado ni
+ * escribe su historial; eso lo hace la clase de control (Laboratorio), que
+ * valida cada transicion y la registra en la bitacora.
  *
  * @author Alday, Rodrigo Matias
  */
@@ -20,82 +19,18 @@ public class Muestra implements Trazable {
     private final Orden orden;
     private EstadoMuestra estado;
     private LocalDateTime fechaExtraccion;
-    private final List<EventoTraza> historial;
 
-    public Muestra(String codigoBarra, String tipoMuestra, Orden orden, String responsable) {
+    /** Toda muestra nace GENERADA: el rotulo existe antes que la extraccion. */
+    public Muestra(String codigoBarra, String tipoMuestra, Orden orden) {
         this.codigoBarra = codigoBarra;
         this.tipoMuestra = tipoMuestra;
         this.orden = orden;
         this.estado = EstadoMuestra.GENERADA;
-        this.historial = new ArrayList<>();
-        // Se agrega directamente a la coleccion y no mediante registrarEvento(), que es
-        // sobrescribible: invocar un metodo redefinible desde el constructor dejaria
-        // expuesto un objeto todavia no construido por completo.
-        this.historial.add(new EventoTraza(null, EstadoMuestra.GENERADA, responsable,
-                "Rotulo generado para la orden " + orden.getNumero()));
-    }
-
-    /**
-     * Cambia el estado de la muestra validando la transicion.
-     *
-     * @throws MuestraInvalidaException si la transicion no es valida en el circuito.
-     */
-    public void cambiarEstado(EstadoMuestra destino, String responsable, String observacion)
-            throws MuestraInvalidaException {
-        if (!estado.puedeTransicionarA(destino)) {
-            throw new MuestraInvalidaException("La muestra " + codigoBarra
-                    + " esta en estado " + estado + " y no puede pasar a " + destino + ".");
-        }
-        EventoTraza evento = new EventoTraza(estado, destino, responsable, observacion);
-        this.estado = destino;
-        if (destino == EstadoMuestra.EXTRAIDA) {
-            this.fechaExtraccion = LocalDateTime.now();
-        }
-        registrarEvento(evento);
-    }
-
-    /**
-     * Tiempo de respuesta (TAT) en minutos entre la extraccion y el evento actual.
-     * Devuelve -1 si la muestra todavia no fue extraida.
-     */
-    public long calcularTatMinutos() {
-        if (fechaExtraccion == null) {
-            return -1;
-        }
-        EventoTraza ultimo = getUltimoEvento();
-        return Duration.between(fechaExtraccion, ultimo.getFechaHora()).toMinutes();
     }
 
     @Override
     public String getIdentificacion() {
         return codigoBarra;
-    }
-
-    /**
-     * Agrega al historial el evento de la transicion que acaba de aplicar
-     * cambiarEstado(). El metodo es publico porque lo exige la interfaz Trazable,
-     * pero rechaza cualquier evento que no documente esa transicion: desde fuera
-     * de la clase no se puede agregar un evento que no haya ocurrido.
-     *
-     * @throws IllegalArgumentException si el evento no corresponde a la ultima transicion.
-     */
-    @Override
-    public void registrarEvento(EventoTraza evento) {
-        EventoTraza ultimo = getUltimoEvento();
-        boolean esLaTransicionAplicada = evento.getEstadoNuevo() == estado
-                && evento.getEstadoAnterior() != estado
-                && ultimo != null && evento.getEstadoAnterior() == ultimo.getEstadoNuevo();
-        if (!esLaTransicionAplicada) {
-            throw new IllegalArgumentException("El evento no corresponde a la ultima transicion de "
-                    + codigoBarra + ": los estados solo cambian mediante cambiarEstado().");
-        }
-        historial.add(evento);
-    }
-
-    /** Devuelve una vista no modificable: protege el historial de alteraciones. */
-    @Override
-    public List<EventoTraza> getHistorial() {
-        return Collections.unmodifiableList(historial);
     }
 
     public String getCodigoBarra() {
@@ -114,8 +49,16 @@ public class Muestra implements Trazable {
         return estado;
     }
 
+    public void setEstado(EstadoMuestra estado) {
+        this.estado = estado;
+    }
+
     public LocalDateTime getFechaExtraccion() {
         return fechaExtraccion;
+    }
+
+    public void setFechaExtraccion(LocalDateTime fechaExtraccion) {
+        this.fechaExtraccion = fechaExtraccion;
     }
 
     @Override
