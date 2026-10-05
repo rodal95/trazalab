@@ -1,0 +1,10 @@
+# Conexion de TRAZALAB con la base de datos.
+#
+# En cada puesto se copia como config/trazalab.properties, dentro de la carpeta
+# de instalacion, y se completa db.clave con la clave de trazalab_app que mostro
+# sql/05-usuarios.sql. El archivo con la clave real no se sube al repositorio.
+#
+# Servidor del laboratorio: 192.168.10.10, puerto 3306, canal cifrado con TLS.
+db.url=jdbc:mysql://192.168.10.10:3306/trazalab?sslMode=REQUIRED&serverTimezone=America/Argentina/Cordoba
+db.usuario=trazalab_app
+db.clave=

@@ -1,0 +1,8 @@
+# Credenciales del respaldo. Se copia en el servidor como
+# /etc/trazalab/respaldo.cnf, con dueño root y permisos 600:
+#   install -m 600 respaldo.cnf.ejemplo /etc/trazalab/respaldo.cnf
+# y se completa la clave de trazalab_respaldo (la mostro sql/05-usuarios.sql).
+[client]
+user=trazalab_respaldo
+password=
+host=localhost
