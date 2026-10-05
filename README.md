@@ -44,6 +44,19 @@ módulo persistente, que trabaja contra MySQL.
 La versión entregada con la AP3 —el prototipo en memoria, sin la capa de persistencia—
 queda identificada en el repositorio con la etiqueta `ap3`.
 
+## Pruebas
+```bash
+sh test/ejecutar-pruebas.sh              # salidas en pantalla
+sh test/ejecutar-pruebas.sh evidencias   # salidas guardadas en esa carpeta
+```
+Compila el prototipo junto con `test/` y ejecuta:
+- `trazalab.pruebas.CasosDePrueba`: casos de componente e integración CPC01, CPF02,
+  CPC03, CPF04 y CPI05. Cada fila muestra entrada, resultado esperado, obtenido y si
+  pasa; el programa termina con error si alguna falla.
+- `trazalab.pruebas.EjecutorSistema` con cada guion de `test/sistema/` (CPF02, CPS06,
+  CPS07): ejecuta el menú completo con las entradas del guion, como si las tipeara
+  un usuario, y deja la sesión en pantalla.
+
 ## Estructura
 ```
 src/trazalab/
@@ -54,6 +67,10 @@ src/trazalab/
   persistencia/    5 archivos — ConexionBD, GenericoDAO, PacienteDAO, EstudioDAO, MuestraDAO
   mvc/             3 archivos — Modelo, Vista y Controlador de trazabilidad
   app/             2 archivos — MenuPrincipal y MenuBaseDatos
+test/
+  trazalab/pruebas/  CasosDePrueba (componente e integración) y EjecutorSistema
+  sistema/           guiones de las pruebas de sistema (cpf02, cps06, cps07)
+  ejecutar-pruebas.sh
 lib/    conector JDBC
 sql/    scripts de la base de datos (los mismos de la AP2)
 salidas/  certificados de trazabilidad exportados por el sistema

@@ -1,0 +1,53 @@
+# CPS06 - Sistema, funcional (caja negra). Recorre el circuito completo de una orden.
+# Las letras a, b y c son las del AP2; d y e se agregan en el AP3. Las lineas
+# "preparacion" llevan la muestra al estado que necesita el subcaso siguiente.
+# CPS06-a: orden con glucemia, colesterol y orina completa (RF09-RF14).
+3
+30111222
+Dra. Perez, Silvia
+GLU01
+s
+COL01
+s
+ORI01
+n
+# preparacion: extraccion con el ayuno exigido; dos muestras, suero y orina (RF15, RF16)
+4
+O-0001
+12
+# preparacion: el suero entra a proceso analitico (RF17)
+5
+M-SUE-0001
+3
+Ingresa a autoanalizador
+# CPS06-c: carga de resultados; la glucemia 178 queda fuera del rango 70-110 (RF20, RF21)
+6
+M-SUE-0001
+178
+mg/dL
+70
+110
+180
+mg/dL
+150
+200
+# preparacion: analisis finalizado
+5
+M-SUE-0001
+4
+Analisis finalizado
+# CPS06-b: se intenta volver a EXTRAIDA desde ANALIZADA: se rechaza (RF18)
+5
+M-SUE-0001
+2
+Reingreso
+# CPS06-d: el bioquimico valida y se emite el informe; el suero pasa a INFORMADA (RF23, RF24)
+7
+O-0001
+# CPS06-e: el historial no registra la transicion rechazada (RF19) y una muestra
+# informada no se puede anular (RF18)
+5
+M-SUE-0001
+6
+Intento de anular una muestra informada
+0

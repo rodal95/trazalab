@@ -1,0 +1,37 @@
+# CPS07 - Sistema, prueba negativa: datos invalidos y codigos inexistentes.
+# Las letras a y b son las del AP2; de la c a la g se agregan en el AP3.
+# CPS07-a: una letra donde se espera una opcion del menu
+k
+# CPS07-c: una opcion fuera de rango
+15
+# CPS07-d: DNI inexistente al registrar una orden
+3
+99999999
+# CPS07-e: codigo de practica inexistente: la orden queda sin practicas y no debe registrarse
+3
+30111222
+Dr. Prueba
+XYZ01
+n
+# CPS07-f: numero de orden inexistente al registrar la extraccion
+4
+O-9999
+# preparacion de CPS07-b: una orden con una practica y su extraccion
+3
+30111222
+Dr. Prueba
+HEM01
+n
+4
+O-0001
+0
+# CPS07-b: codigo de muestra inexistente
+5
+M-XXX-9999
+# CPS07-g: texto donde se espera un numero (hora del turno)
+2
+1
+30111222
+ocho
+8
+0

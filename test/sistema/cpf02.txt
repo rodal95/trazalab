@@ -1,0 +1,18 @@
+# CPF02 en el sistema completo: valor representativo de CEV1 (11 h, frontera) y de CEV2 (12 h).
+# Orden O-0001 con GLU01, COL01 y ORI01: ayuno exigido 12 h.
+3
+30111222
+Dra. Perez, Silvia
+GLU01
+s
+COL01
+s
+ORI01
+n
+4
+O-0001
+11
+4
+O-0001
+12
+0

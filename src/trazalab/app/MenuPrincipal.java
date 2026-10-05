@@ -3,6 +3,7 @@ package trazalab.app;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import trazalab.dominio.EstadoMuestra;
 import trazalab.dominio.Estudio;
@@ -187,15 +188,17 @@ public class MenuPrincipal {
         try {
             Paciente paciente = laboratorio.buscarPaciente(Consola.leerTexto("  DNI del paciente: "));
             String medico = Consola.leerTexto("  Medico solicitante: ");
-            Orden orden = laboratorio.crearOrden(paciente, medico);
 
+            // Las practicas se eligen primero: la orden se registra recien cuando tiene
+            // al menos una. Si no, quedaria una orden vacia ocupando un numero (CPS07-e).
+            List<Estudio> elegidos = new ArrayList<>();
             boolean seguir = true;
             while (seguir) {
                 mostrarCatalogoResumido();
                 String codigo = Consola.leerTexto("  Codigo de practica a agregar: ");
                 try {
                     Estudio estudio = laboratorio.buscarEstudio(codigo);
-                    orden.agregarEstudio(estudio);
+                    elegidos.add(estudio);
                     System.out.println("  [OK] Agregado: " + estudio.getNombre()
                             + " ($" + String.format("%.2f", estudio.calcularPrecio()) + ")");
                 } catch (EntidadNoEncontradaException e) {
@@ -204,9 +207,13 @@ public class MenuPrincipal {
                 seguir = Consola.confirmar("  Agregar otra practica?");
             }
 
-            if (orden.getEstudios().isEmpty()) {
-                System.out.println("  [!] La orden quedo sin practicas.");
+            if (elegidos.isEmpty()) {
+                System.out.println("  [!] La orden quedo sin practicas: no se registra.");
                 return;
+            }
+            Orden orden = laboratorio.crearOrden(paciente, medico);
+            for (Estudio estudio : elegidos) {
+                orden.agregarEstudio(estudio);
             }
             Consola.separador();
             System.out.println("  Orden " + orden.getNumero() + " registrada.");
