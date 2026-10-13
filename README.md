@@ -72,8 +72,11 @@ Con `-Dtrazalab.config=ruta` se usa otro archivo de configuración.
 Las opciones 1 a 9 operan en memoria (igual que en la AP3). La opción **10** abre el
 módulo persistente, que trabaja contra MySQL.
 
-La versión entregada con la AP3 —el prototipo en memoria, sin la capa de persistencia—
-queda identificada en el repositorio con la etiqueta `ap3`.
+Las etiquetas `ap3` y `ap4` identifican el código de cada entrega. El AP3 es
+incremental: incluye las definiciones de implementación del sistema completo
+(construcción, configuración, usuarios de MySQL y respaldo). Por eso `ap3` apunta al
+mismo código que `ap4`. El prototipo en memoria que desarrolla el AP3 corresponde a
+las opciones 1 a 9 del menú.
 
 ## Pruebas
 ```bash
