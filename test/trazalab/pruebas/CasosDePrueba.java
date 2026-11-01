@@ -213,9 +213,9 @@ public class CasosDePrueba {
     /** Particion de equivalencia sobre la franja horaria y el cupo de turnos. */
     private static void cpf04() throws Exception {
         encabezado("CPF04", "Componente - particion de equivalencia y valores de frontera (caja negra)",
-                "AgendaTurnos.otorgarTurno(): extraccion de 7:00 a 11:00, cupo de 3 turnos por franja (RF05, RF06, RF07)");
+                "AgendaTurnos.otorgarTurno(): extraccion de 7:00 a 11:00, cupo de 4 turnos por franja (RF05, RF06, RF07)");
         nota("Clases: CEV1 7 <= hora < 11 | CEI1 hora < 7 | CEI2 hora >= 11 | CEV2 franja con cupo | "
-                + "CEI3 franja completa (3 turnos).");
+                + "CEI3 franja completa (4 turnos).");
         cabeceraTabla();
         LocalDate dia = LocalDate.of(2026, 10, 19);
         Object[][] horas = {
@@ -232,9 +232,9 @@ public class CasosDePrueba {
         }
         AgendaTurnos agenda = new AgendaTurnos();
         LocalDateTime ocho = dia.atTime(8, 0);
-        for (int k = 1; k <= 4; k++) {
-            String esperado = k <= 3 ? "otorga, box " + k : "rechaza: franja completa";
-            fila(k <= 3 ? "CEV2" : "CEI3", "turno " + k + " de las 08:00", esperado,
+        for (int k = 1; k <= 5; k++) {
+            String esperado = k <= 4 ? "otorga, box " + k : "rechaza: franja completa";
+            fila(k <= 4 ? "CEV2" : "CEI3", "turno " + k + " de las 08:00", esperado,
                     intentarTurno(agenda, paciente("3011122" + k), ocho));
         }
         fila("CEV2", "08:00 del dia siguiente", "otorga, box 1",

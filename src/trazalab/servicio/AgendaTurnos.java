@@ -17,8 +17,8 @@ import trazalab.excepciones.TurnoNoDisponibleException;
  */
 public class AgendaTurnos {
 
-    /** Cupo maximo de turnos por franja horaria (boxes de extraccion). */
-    private static final int CUPO_POR_FRANJA = 3;
+    /** Cupo maximo de turnos por franja horaria: uno por cada box de extraccion (la sede tiene cuatro). */
+    private static final int CUPO_POR_FRANJA = 4;
     private static final int HORA_APERTURA = 7;
     private static final int HORA_CIERRE = 11;
 

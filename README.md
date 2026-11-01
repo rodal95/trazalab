@@ -74,9 +74,10 @@ módulo persistente, que trabaja contra MySQL.
 
 Las etiquetas `ap3` y `ap4` identifican el código de cada entrega. El AP3 es
 incremental: incluye las definiciones de implementación del sistema completo
-(construcción, configuración, usuarios de MySQL y respaldo). Por eso `ap3` apunta al
-mismo código que `ap4`. El prototipo en memoria que desarrolla el AP3 corresponde a
-las opciones 1 a 9 del menú.
+(construcción, configuración, usuarios de MySQL y respaldo). El prototipo en memoria
+que desarrolla el AP3 corresponde a las opciones 1 a 9 del menú. La etiqueta `ap4`
+agrega un único cambio sobre `ap3`: el cupo por franja horaria pasa de 3 a 4 turnos,
+uno por cada box de extracción (`AgendaTurnos` y la prueba CPF04).
 
 ## Pruebas
 ```bash
