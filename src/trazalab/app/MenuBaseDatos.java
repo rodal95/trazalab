@@ -2,6 +2,7 @@ package trazalab.app;
 
 import java.sql.Connection;
 import trazalab.excepciones.PersistenciaException;
+import trazalab.excepciones.VolverAlMenuException;
 import trazalab.mvc.ControladorTrazabilidad;
 import trazalab.persistencia.ConexionBD;
 import trazalab.util.Consola;
@@ -58,16 +59,20 @@ public class MenuBaseDatos {
             System.out.println("  0. Volver al menu principal");
             Consola.separador();
             int opcion = Consola.leerEntero("  Elija una opcion: ", 0, 7);
-            switch (opcion) {
-                case 1 -> controlador.listarMuestrasEnCircuito();
-                case 2 -> controlador.registrarCambioDeEstado();
-                case 3 -> controlador.consultarCatalogo();
-                case 4 -> controlador.actualizarPrecios();
-                case 5 -> controlador.mostrarIndicadores();
-                case 6 -> controlador.listarPacientes();
-                case 7 -> controlador.exportarTrazabilidad();
-                case 0 -> continuar = false;
-                default -> System.out.println("  [!] Opcion inexistente.");
+            try {
+                switch (opcion) {
+                    case 1 -> controlador.listarMuestrasEnCircuito();
+                    case 2 -> controlador.registrarCambioDeEstado();
+                    case 3 -> controlador.consultarCatalogo();
+                    case 4 -> controlador.actualizarPrecios();
+                    case 5 -> controlador.mostrarIndicadores();
+                    case 6 -> controlador.listarPacientes();
+                    case 7 -> controlador.exportarTrazabilidad();
+                    case 0 -> continuar = false;
+                    default -> System.out.println("  [!] Opcion inexistente.");
+                }
+            } catch (VolverAlMenuException e) {
+                System.out.println("  [i] Operacion cancelada. Vuelve al modulo persistente.");
             }
         }
 

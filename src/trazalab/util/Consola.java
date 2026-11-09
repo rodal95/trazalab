@@ -2,6 +2,7 @@ package trazalab.util;
 
 import java.util.InputMismatchException;
 import java.util.Scanner;
+import trazalab.excepciones.VolverAlMenuException;
 
 /**
  * Utilidades de entrada y salida por consola con MANEJO DE EXCEPCIONES.
@@ -13,7 +14,17 @@ public final class Consola {
 
     private static final Scanner ENTRADA = new Scanner(System.in);
 
+    /** Version web: escribir "volver" en cualquier dato cancela la operacion. */
+    private static final boolean VOLVER_ACTIVO = Boolean.getBoolean("trazalab.web");
+
     private Consola() {
+    }
+
+    /** Si el texto es "volver" (version web), cancela la operacion en curso. */
+    private static void revisarVolver(String texto) {
+        if (VOLVER_ACTIVO && texto != null && texto.trim().equalsIgnoreCase("volver")) {
+            throw new VolverAlMenuException();
+        }
     }
 
     /**
@@ -27,6 +38,13 @@ public final class Consola {
             System.out.print(mensaje);
             System.out.flush();   // el mensaje queda completo antes de leer
             try {
+                if (!ENTRADA.hasNextInt() && VOLVER_ACTIVO) {
+                    // version web: "volver" cancela y regresa al menu anterior
+                    String texto = ENTRADA.nextLine();
+                    revisarVolver(texto);
+                    System.out.println("  [!] Opcion no valida: se esperaba un numero entero.");
+                    continue;
+                }
                 valor = ENTRADA.nextInt();
                 ENTRADA.nextLine();
                 if (valor < minimo || valor > maximo) {
@@ -53,6 +71,7 @@ public final class Consola {
             System.out.print(mensaje);
             System.out.flush();   // el mensaje queda completo antes de leer
             String texto = ENTRADA.nextLine().trim();
+            revisarVolver(texto);
             try {
                 valor = Double.parseDouble(texto.replace(',', '.'));
                 valido = true;
@@ -70,6 +89,7 @@ public final class Consola {
             System.out.print(mensaje);
             System.out.flush();   // el mensaje queda completo antes de leer
             texto = ENTRADA.nextLine();
+            revisarVolver(texto);
             if (texto.trim().isEmpty()) {
                 System.out.println("  [!] El dato no puede quedar vacio.");
             }

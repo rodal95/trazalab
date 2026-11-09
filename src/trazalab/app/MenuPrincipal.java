@@ -19,6 +19,7 @@ import trazalab.excepciones.FallaDePersistenciaException;
 import trazalab.excepciones.PersistenciaException;
 import trazalab.excepciones.MuestraInvalidaException;
 import trazalab.excepciones.TurnoNoDisponibleException;
+import trazalab.excepciones.VolverAlMenuException;
 import trazalab.persistencia.ConexionBD;
 import trazalab.persistencia.RepositorioLaboratorio;
 import trazalab.servicio.Laboratorio;
@@ -64,7 +65,13 @@ public class MenuPrincipal {
         boolean ejecutando = true;
         while (ejecutando) {
             mostrarMenu();
-            int opcion = Consola.leerEntero("  Elija una opcion: ", 0, 10);
+            int opcion;
+            try {
+                opcion = Consola.leerEntero("  Elija una opcion: ", 0, 10);
+            } catch (VolverAlMenuException e) {
+                System.out.println("  [i] Ya esta en el menu principal. Para salir, elija 0.");
+                continue;
+            }
             try {
                 // Version web: antes de cada operacion se vuelve a leer la base, para ver
                 // lo que registraron las otras sesiones.
@@ -78,6 +85,8 @@ public class MenuPrincipal {
             } catch (FallaDePersistenciaException e) {
                 System.out.println("  [X] Error de base de datos: " + e.getMessage());
                 System.out.println("      La operacion no se registro.");
+            } catch (VolverAlMenuException e) {
+                System.out.println("  [i] Operacion cancelada. Vuelve al menu principal.");
             }
             if (opcion == 0) {
                 ejecutando = false;
@@ -116,7 +125,14 @@ public class MenuPrincipal {
         try {
             repositorio = new RepositorioLaboratorio(ConexionBD.getInstancia());
             for (int intento = 1; intento <= 3 && usuarioActual == null; intento++) {
-                String usuario = Consola.leerTexto("  Usuario: ");
+                String usuario;
+                try {
+                    usuario = Consola.leerTexto("  Usuario: ");
+                } catch (VolverAlMenuException e) {
+                    System.out.println("  [i] Para salir, cierre la pestania. Ingrese su usuario.");
+                    intento--;
+                    continue;
+                }
                 char[] clave = leerClave("  Contrasenia: ");
                 usuarioActual = repositorio.autenticar(usuario, clave);
                 java.util.Arrays.fill(clave, ' ');
@@ -185,6 +201,11 @@ public class MenuPrincipal {
         System.out.println(" 10. Modulo persistente MySQL (MVC + JDBC)");
         System.out.println("  0. Salir");
         Consola.separador();
+        if (laboratorio.esPersistente()) {
+            System.out.println("  En los submenus, 0 vuelve atras. En cualquier dato, escriba 'volver'");
+            System.out.println("  para cancelar la operacion y regresar al menu anterior.");
+            Consola.separador();
+        }
     }
 
     // ------------------------------------------------------------------ opcion 1
@@ -221,24 +242,38 @@ public class MenuPrincipal {
     // ------------------------------------------------------------------ opcion 2
 
     private static void gestionarTurnos() {
-        Consola.titulo("Turnos y sala de espera");
-        System.out.println("  1. Otorgar turno de extraccion");
-        System.out.println("  2. Registrar llegada del paciente (ingresa a la cola)");
-        System.out.println("  3. Llamar al siguiente paciente (sale de la cola)");
-        System.out.println("  4. Ver sala de espera");
-        int opcion = Consola.leerEntero("  Opcion: ", 1, 4);
-        Consola.separador();
-        try {
-            switch (opcion) {
-                case 1 -> otorgarTurno();
-                case 2 -> registrarLlegada();
-                case 3 -> llamarSiguiente();
-                default -> verSalaDeEspera();
+        boolean web = laboratorio.esPersistente();
+        while (true) {
+            Consola.titulo("Turnos y sala de espera");
+            System.out.println("  1. Otorgar turno de extraccion");
+            System.out.println("  2. Registrar llegada del paciente (ingresa a la cola)");
+            System.out.println("  3. Llamar al siguiente paciente (sale de la cola)");
+            System.out.println("  4. Ver sala de espera");
+            if (web) {
+                System.out.println("  0. Volver al menu principal");
             }
-        } catch (EntidadNoEncontradaException e) {
-            System.out.println("  [X] " + e.getMessage());
-        } catch (TurnoNoDisponibleException e) {
-            System.out.println("  [X] " + e.getMessage());
+            int opcion = Consola.leerEntero("  Opcion: ", web ? 0 : 1, 4);
+            if (opcion == 0) {
+                return;
+            }
+            Consola.separador();
+            try {
+                switch (opcion) {
+                    case 1 -> otorgarTurno();
+                    case 2 -> registrarLlegada();
+                    case 3 -> llamarSiguiente();
+                    default -> verSalaDeEspera();
+                }
+                return;
+            } catch (EntidadNoEncontradaException e) {
+                System.out.println("  [X] " + e.getMessage());
+                return;
+            } catch (TurnoNoDisponibleException e) {
+                System.out.println("  [X] " + e.getMessage());
+                return;
+            } catch (VolverAlMenuException e) {
+                System.out.println("  [i] Operacion cancelada. Vuelve al menu de turnos.");
+            }
         }
     }
 
@@ -477,30 +512,43 @@ public class MenuPrincipal {
     // ------------------------------------------------------------------ opcion 8
 
     private static void consultarCatalogo() {
-        Consola.titulo("Catalogo de practicas");
-        System.out.println("  1. Listar por codigo (arreglo ordenado por insercion)");
-        System.out.println("  2. Listar por precio descendente (quicksort)");
-        System.out.println("  3. Buscar por codigo (busqueda binaria)");
-        int opcion = Consola.leerEntero("  Opcion: ", 1, 3);
-        Consola.separador();
-        if (opcion == 1) {
-            for (Estudio estudio : laboratorio.getCatalogo()) {
-                System.out.println("  " + estudio);
+        boolean web = laboratorio.esPersistente();
+        while (true) {
+            Consola.titulo("Catalogo de practicas");
+            System.out.println("  1. Listar por codigo (arreglo ordenado por insercion)");
+            System.out.println("  2. Listar por precio descendente (quicksort)");
+            System.out.println("  3. Buscar por codigo (busqueda binaria)");
+            if (web) {
+                System.out.println("  0. Volver al menu principal");
             }
-        } else if (opcion == 2) {
-            for (Estudio estudio : laboratorio.catalogoPorPrecioDescendente()) {
-                System.out.println("  " + estudio);
+            int opcion = Consola.leerEntero("  Opcion: ", web ? 0 : 1, 3);
+            if (opcion == 0) {
+                return;
             }
-        } else {
-            try {
-                Estudio estudio = laboratorio.buscarEstudio(Consola.leerTexto("  Codigo: "));
-                System.out.println("\n  " + estudio);
-                System.out.println("  Tipo de muestra : " + estudio.getTipoMuestra());
-                System.out.println("  Demora estimada : " + horas(estudio.calcularHorasDemora()));
-                System.out.println("  Clase concreta  : " + estudio.getClass().getSimpleName());
-            } catch (EntidadNoEncontradaException e) {
-                System.out.println("  [X] " + e.getMessage());
+            Consola.separador();
+            if (opcion == 1) {
+                for (Estudio estudio : laboratorio.getCatalogo()) {
+                    System.out.println("  " + estudio);
+                }
+            } else if (opcion == 2) {
+                for (Estudio estudio : laboratorio.catalogoPorPrecioDescendente()) {
+                    System.out.println("  " + estudio);
+                }
+            } else {
+                try {
+                    Estudio estudio = laboratorio.buscarEstudio(Consola.leerTexto("  Codigo: "));
+                    System.out.println("\n  " + estudio);
+                    System.out.println("  Tipo de muestra : " + estudio.getTipoMuestra());
+                    System.out.println("  Demora estimada : " + horas(estudio.calcularHorasDemora()));
+                    System.out.println("  Clase concreta  : " + estudio.getClass().getSimpleName());
+                } catch (EntidadNoEncontradaException e) {
+                    System.out.println("  [X] " + e.getMessage());
+                } catch (VolverAlMenuException e) {
+                    System.out.println("  [i] Operacion cancelada. Vuelve al catalogo.");
+                    continue;
+                }
             }
+            return;
         }
     }
 

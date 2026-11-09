@@ -108,6 +108,9 @@
   <ul>
     <li>Cada pantalla pide un dato. Escríbalo y presione <kbd>Enter</kbd>.</li>
     <li>En los menús se escribe el <b>número</b> de la opción. Las preguntas de sí o no se responden con <kbd>s</kbd> o <kbd>n</kbd>.</li>
+    <li><b>Volver un menú atrás:</b> en los submenús (turnos, catálogo y módulo persistente) la opción <kbd>0</kbd>
+      vuelve al menú principal. En cualquier dato que se esté pidiendo, escriba <code>volver</code>: la operación se
+      cancela sin registrar nada y regresa al menú desde el que se entró.</li>
     <li>Los valores decimales aceptan coma o punto: <code>2,1</code> o <code>2.1</code>.</li>
     <li>Los mensajes indican el resultado de cada operación:
       <span class="ok">[OK]</span> se registró,
@@ -126,15 +129,15 @@
     <thead><tr><th>Opción</th><th>Para qué sirve</th><th>Qué pide</th></tr></thead>
     <tbody>
       <tr><td>1. Registrar paciente</td><td>Alta de un paciente. Si el DNI ya existe, lo informa.</td><td>DNI, apellido, nombre, fecha de nacimiento, obra social y teléfono.</td></tr>
-      <tr><td>2. Turnos y sala de espera</td><td>Otorgar turnos (de 7 a 11, cuatro boxes por franja), registrar la llegada, llamar al siguiente y ver la cola.</td><td>Subopción, DNI y hora (formato 24 h). Los turnos se dan para el día siguiente.</td></tr>
+      <tr><td>2. Turnos y sala de espera</td><td>Otorgar turnos (de 7 a 11, cuatro boxes por franja), registrar la llegada, llamar al siguiente y ver la cola.</td><td>Subopción (0 vuelve), DNI y hora (formato 24 h). Los turnos se dan para el día siguiente.</td></tr>
       <tr><td>3. Registrar orden de estudios</td><td>Orden con una o más prácticas. Calcula importe, ayuno exigido, demora y tipos de muestra.</td><td>DNI, médico solicitante y códigos de práctica (por ejemplo <code>GLU01</code>).</td></tr>
       <tr><td>4. Registrar extracción</td><td>Genera una muestra por tipo, con su código. Rechaza la extracción si el ayuno declarado no alcanza.</td><td>Número de orden y horas de ayuno declaradas.</td></tr>
       <tr><td>5. Avanzar circuito de una muestra</td><td>Cambia el estado de una muestra. Solo permite el estado siguiente o la anulación.</td><td>Código de barra, nuevo estado y observación.</td></tr>
       <tr><td>6. Cargar resultados</td><td>Carga los resultados de una muestra en proceso o analizada, y marca los valores fuera de rango o críticos.</td><td>Código de barra y, por cada práctica, valor, unidad y rango de referencia.</td></tr>
       <tr><td>7. Validar y emitir informe</td><td>Valida los resultados de las muestras analizadas, las pasa a INFORMADA y muestra el informe.</td><td>Número de orden.</td></tr>
-      <tr><td>8. Consultar catálogo</td><td>Lista de prácticas por código o por precio, y búsqueda por código.</td><td>Subopción y, si busca, el código.</td></tr>
+      <tr><td>8. Consultar catálogo</td><td>Lista de prácticas por código o por precio, y búsqueda por código.</td><td>Subopción (0 vuelve) y, si busca, el código.</td></tr>
       <tr><td>9. Indicadores de gestión</td><td>Totales, muestras por estado, tiempo de respuesta y últimas acciones de la sesión.</td><td>Nada.</td></tr>
-      <tr><td>10. Módulo persistente</td><td>Patrón MVC sobre MySQL: muestras en circuito, registro de eventos, catálogo, precios, indicadores, pacientes y certificado de trazabilidad.</td><td>Subopción y los datos de cada una.</td></tr>
+      <tr><td>10. Módulo persistente</td><td>Patrón MVC sobre MySQL: muestras en circuito, registro de eventos, catálogo, precios, indicadores, pacientes y certificado de trazabilidad.</td><td>Subopción (0 vuelve) y los datos de cada una.</td></tr>
       <tr><td>0. Salir</td><td>Cierra la sesión.</td><td>Nada.</td></tr>
     </tbody>
   </table></div>
@@ -309,7 +312,48 @@ Total de eventos: 5</pre></dd></dl></div>
     <dt>Entradas</dt><dd>En una sesión nueva: <code>1</code>, <code>40222888</code> (el paciente dado de alta en CPW06)</dd>
     <dt>Resultado esperado</dt><dd>La nueva sesión lee el alta desde la base:
       <pre><span class="dato">  [!] El paciente ya esta registrado: Lopez, Sofia</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW17</span>Cancelar un dato dentro de un submenú</h3><dl>
+    <dt>Entradas</dt><dd><code>2</code>, <code>1</code>, <code>volver</code> (en lugar del DNI), <code>0</code></dd>
+    <dt>Resultado esperado</dt><dd>Vuelve al menú de turnos y, con 0, al menú principal:
+      <pre><span style="color:#5fc4d8">  [i] Operacion cancelada. Vuelve al menu de turnos.</span>
+  TURNOS Y SALA DE ESPERA
+  Opcion: 0
+  TRAZALAB - LABORATORIO BIOQUIMICO SAN RAFAEL</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW18</span>Cancelar una orden a medio cargar</h3><dl>
+    <dt>Entradas</dt><dd><code>3</code>, <code>30111222</code>, <code>Dra. Prueba</code>, <code>GLU01</code>, <code>s</code>,
+      <code>volver</code> · <code>9</code></dd>
+    <dt>Resultado esperado</dt><dd>La orden no se registra: los indicadores siguen en 8 órdenes (las 7 iniciales y la de CPW07):
+      <pre><span class="ok">  [OK] Agregado: Glucemia en ayunas ($3780,00)</span>
+<span style="color:#5fc4d8">  [i] Operacion cancelada. Vuelve al menu principal.</span>
+  Ordenes registradas   : 8</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW19</span>Cancelar dentro del módulo persistente</h3><dl>
+    <dt>Entradas</dt><dd><code>10</code>, <code>2</code>, <code>volver</code> (en lugar del código de barra), <code>0</code></dd>
+    <dt>Resultado esperado</dt><dd>Vuelve al menú del módulo y, con 0, al principal:
+      <pre><span style="color:#5fc4d8">  [i] Operacion cancelada. Vuelve al modulo persistente.</span>
+  TRAZALAB - MODULO PERSISTENTE (MVC + JDBC)
+  Elija una opcion: 0
+  TRAZALAB - LABORATORIO BIOQUIMICO SAN RAFAEL</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW20</span>Volver desde los submenús</h3><dl>
+    <dt>Entradas</dt><dd><code>8</code>, <code>0</code> · <code>10</code>, <code>volver</code></dd>
+    <dt>Resultado esperado</dt><dd>Desde el catálogo y desde el menú del módulo se regresa al menú principal:
+      <pre>  CATALOGO DE PRACTICAS
+  Opcion: 0
+  TRAZALAB - LABORATORIO BIOQUIMICO SAN RAFAEL
+  ...
+  TRAZALAB - MODULO PERSISTENTE (MVC + JDBC)
+  Elija una opcion: volver
+<span style="color:#5fc4d8">  [i] Operacion cancelada. Vuelve al menu principal.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW21</span>"volver" en el menú principal</h3><dl>
+    <dt>Entradas</dt><dd><code>volver</code></dd>
+    <dt>Resultado esperado</dt><dd>La sesión sigue abierta en el menú principal:
+      <pre><span style="color:#5fc4d8">  [i] Ya esta en el menu principal. Para salir, elija 0.</span></pre></dd></dl></div>
 </section>
+
 
 <section id="tecnico">
   <h2>7. Funcionamiento</h2>
