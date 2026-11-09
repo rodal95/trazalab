@@ -25,6 +25,7 @@ public final class Consola {
         boolean valido = false;
         while (!valido) {
             System.out.print(mensaje);
+            System.out.flush();   // el mensaje queda completo antes de leer
             try {
                 valor = ENTRADA.nextInt();
                 ENTRADA.nextLine();
@@ -41,19 +42,22 @@ public final class Consola {
         return valor;
     }
 
-    /** Lee un numero real con el mismo tratamiento de excepciones. */
+    /**
+     * Lee un numero real. Acepta coma o punto decimal (2,1 o 2.1): en la version web
+     * cada visitante escribe con la convencion de su teclado.
+     */
     public static double leerDecimal(String mensaje) {
         double valor = 0;
         boolean valido = false;
         while (!valido) {
             System.out.print(mensaje);
+            System.out.flush();   // el mensaje queda completo antes de leer
+            String texto = ENTRADA.nextLine().trim();
             try {
-                valor = ENTRADA.nextDouble();
-                ENTRADA.nextLine();
+                valor = Double.parseDouble(texto.replace(',', '.'));
                 valido = true;
-            } catch (InputMismatchException e) {
+            } catch (NumberFormatException e) {
                 System.out.println("  [!] Valor no valido: se esperaba un numero.");
-                ENTRADA.nextLine();
             }
         }
         return valor;
@@ -64,6 +68,7 @@ public final class Consola {
         String texto = "";
         while (texto.trim().isEmpty()) {
             System.out.print(mensaje);
+            System.out.flush();   // el mensaje queda completo antes de leer
             texto = ENTRADA.nextLine();
             if (texto.trim().isEmpty()) {
                 System.out.println("  [!] El dato no puede quedar vacio.");

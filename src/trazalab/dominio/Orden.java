@@ -21,10 +21,15 @@ public class Orden {
     private String estado;
 
     public Orden(String numero, Paciente paciente, String medicoSolicitante) {
+        this(numero, paciente, medicoSolicitante, LocalDate.now());
+    }
+
+    /** Reconstruye una orden ya registrada, con su fecha original (persistencia). */
+    public Orden(String numero, Paciente paciente, String medicoSolicitante, LocalDate fecha) {
         this.numero = numero;
         this.paciente = paciente;
         this.medicoSolicitante = medicoSolicitante;
-        this.fecha = LocalDate.now();
+        this.fecha = fecha;
         this.estudios = new ArrayList<>();
         this.estado = "Abierta";
     }

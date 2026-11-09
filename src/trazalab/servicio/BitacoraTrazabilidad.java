@@ -43,6 +43,17 @@ public class BitacoraTrazabilidad {
         eventos.computeIfAbsent(elemento.getIdentificacion(), clave -> new ArrayList<>()).add(evento);
     }
 
+    /**
+     * Reemplaza todo el contenido por el historial leido de la base (version web).
+     * La base ya garantiza la inalterabilidad con sus disparadores (RNF04).
+     */
+    void restaurar(java.util.Map<String, List<EventoTraza>> historiales) {
+        eventos.clear();
+        for (Map.Entry<String, List<EventoTraza>> e : historiales.entrySet()) {
+            eventos.put(e.getKey(), new ArrayList<>(e.getValue()));
+        }
+    }
+
     /** Devuelve el historial del elemento como vista no modificable. */
     public List<EventoTraza> historialDe(Trazable elemento) {
         List<EventoTraza> propios = eventos.get(elemento.getIdentificacion());

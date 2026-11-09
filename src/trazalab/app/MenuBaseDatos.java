@@ -20,6 +20,14 @@ public class MenuBaseDatos {
     private static final int PROFESIONAL_ID = 1;
 
     public static void ejecutar() {
+        ejecutar(PROFESIONAL_ID, true);
+    }
+
+    /**
+     * @param profesionalId profesional que firma los eventos (en la web, el usuario que ingreso).
+     * @param cerrarAlSalir en la web la conexion la comparte el resto del sistema: no se cierra.
+     */
+    public static void ejecutar(int profesionalId, boolean cerrarAlSalir) {
         Consola.titulo("Modulo de persistencia - MySQL");
         ConexionBD conexionBD = ConexionBD.getInstancia();
         System.out.println("  Conectando a " + conexionBD.getUrl().split("\\?")[0] + " ...");
@@ -36,7 +44,7 @@ public class MenuBaseDatos {
             return;
         }
 
-        ControladorTrazabilidad controlador = new ControladorTrazabilidad(conexion, PROFESIONAL_ID);
+        ControladorTrazabilidad controlador = new ControladorTrazabilidad(conexion, profesionalId);
         boolean continuar = true;
         while (continuar) {
             Consola.titulo("TRAZALAB - Modulo persistente (MVC + JDBC)");
@@ -63,6 +71,9 @@ public class MenuBaseDatos {
             }
         }
 
+        if (!cerrarAlSalir) {
+            return;
+        }
         try {
             conexionBD.cerrar();
             System.out.println("\n  [OK] Conexion cerrada correctamente.");

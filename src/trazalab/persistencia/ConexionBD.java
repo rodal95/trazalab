@@ -44,6 +44,8 @@ public final class ConexionBD {
     private final String url;
     private final String usuario;
     private final String clave;
+    /** Zona horaria de la sesion de MySQL (por ejemplo -03:00); null para la del servidor. */
+    private String zona;
 
     /** Constructor privado: nadie puede instanciar la clase desde afuera. */
     private ConexionBD(String url, String usuario, String clave) {
@@ -59,6 +61,7 @@ public final class ConexionBD {
             instancia = new ConexionBD(config.getProperty("db.url", URL_BASE),
                     config.getProperty("db.usuario", USUARIO),
                     config.getProperty("db.clave", CLAVE));
+            instancia.zona = config.getProperty("db.zona");
         }
         return instancia;
     }
@@ -101,6 +104,11 @@ public final class ConexionBD {
             if (conexion == null || conexion.isClosed()) {
                 Class.forName(DRIVER);
                 conexion = DriverManager.getConnection(url, usuario, clave);
+                if (zona != null && !zona.isBlank()) {
+                    try (java.sql.Statement st = conexion.createStatement()) {
+                        st.execute("SET time_zone = '" + zona.replace("'", "") + "'");
+                    }
+                }
             }
             return conexion;
         } catch (ClassNotFoundException e) {
@@ -111,6 +119,22 @@ public final class ConexionBD {
             throw new PersistenciaException(
                     "No fue posible conectar con la base de datos: " + e.getMessage(), e);
         }
+    }
+
+    /** Devuelve una conexion valida: si la anterior caduco (por ejemplo, por inactividad), abre otra. */
+    public Connection obtenerConexionValida() throws PersistenciaException {
+        Connection c = obtenerConexion();
+        try {
+            if (!c.isValid(2)) {
+                cerrarSilencioso();
+                conexion = null;
+                c = obtenerConexion();
+            }
+        } catch (SQLException e) {
+            conexion = null;
+            c = obtenerConexion();
+        }
+        return c;
     }
 
     /** Comprueba que la conexion este viva enviando una instruccion al servidor. */

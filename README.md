@@ -9,6 +9,43 @@ los patrones **MVC**, **DAO** y **singleton**.
 - Servidor: MySQL 8.0.
 - Conector JDBC incluido en `lib/mysql-connector-j-8.4.0.jar`.
 
+
+## Version web de demostracion (rama `web`)
+
+La misma aplicacion de consola, publicada en el navegador. Cada visitante abre su
+propia sesion dentro de una terminal web ([ttyd](https://github.com/tsl0922/ttyd)),
+contra una base MySQL con datos ficticios.
+
+Diferencias con la version de consola (`main`, tag `ap4`):
+
+- **Persistencia completa.** Pacientes, turnos y sala de espera, ordenes, extraccion,
+  circuito de la muestra, resultados y validacion se guardan en MySQL
+  (`persistencia/RepositorioLaboratorio.java`), cada operacion en su transaccion.
+  Antes de cada opcion se vuelve a leer la base, para ver lo que registraron las
+  otras sesiones.
+- **Ingreso con usuario y contrasenia (RF01)**, contra la tabla `usuarios` (SHA-256).
+- **`sql/06-web.sql`**: hora de llegada del turno (la sala de espera es una cola por
+  orden de llegada), usuario generico y mas datos ficticios.
+- Sin `TRAZALAB_MODO=web` (o `-Dtrazalab.web=true`) la aplicacion funciona en memoria
+  como siempre: las pruebas de `test/` dan el mismo resultado.
+
+**Acceso de demostracion:** usuario `demo`, contrasenia `demo2026` (rol Bioquimico).
+La base vuelve a los datos iniciales en cada despliegue y todas las noches a las 4.
+
+Ejecutarla en local, con Docker:
+
+```bash
+docker network create trazalab
+docker run -d --name mysql --network trazalab -e MYSQL_ROOT_PASSWORD=clave mysql:8.0
+docker build -t trazalab-web .
+docker run --rm --network trazalab -p 8080:8080 \
+    -e MYSQLHOST=mysql -e MYSQLUSER=root -e MYSQLPASSWORD=clave trazalab-web
+# http://localhost:8080
+```
+
+En Railway: un servicio MySQL y este Dockerfile, con las variables `MYSQLHOST`,
+`MYSQLPORT`, `MYSQLUSER` y `MYSQLPASSWORD` tomadas del servicio MySQL.
+
 ## Desarrollo en un solo equipo
 ```bash
 mysql -u root -p < sql/01-esquema.sql

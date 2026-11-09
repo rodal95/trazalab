@@ -15,8 +15,12 @@ import trazalab.dominio.Resultado;
 import trazalab.dominio.Turno;
 import trazalab.excepciones.AyunoInsuficienteException;
 import trazalab.excepciones.EntidadNoEncontradaException;
+import trazalab.excepciones.FallaDePersistenciaException;
+import trazalab.excepciones.PersistenciaException;
 import trazalab.excepciones.MuestraInvalidaException;
 import trazalab.excepciones.TurnoNoDisponibleException;
+import trazalab.persistencia.ConexionBD;
+import trazalab.persistencia.RepositorioLaboratorio;
 import trazalab.servicio.Laboratorio;
 import trazalab.util.Consola;
 
@@ -38,34 +42,128 @@ public class MenuPrincipal {
     private static Profesional usuarioActual;
     /** La extraccion y el rotulo de la muestra quedan a cargo de la extraccionista (CU004). */
     private static Profesional extraccionista;
+    /** Version web: persistencia completa en MySQL e ingreso con usuario y contrasenia (RF01). */
+    private static RepositorioLaboratorio repositorio;
 
     public static void main(String[] args) {
-        laboratorio = new Laboratorio("Laboratorio Bioquimico San Rafael");
-        usuarioActual = new Profesional("28456789", "Ferreyra", "Lucia", "BQ-4821", "Bioquimico");
-        extraccionista = new Profesional("33112233", "Ledesma", "Carla", "TL-1204", "Extraccionista");
-        cargarDatosDePrueba();
+        if (Boolean.getBoolean("trazalab.web") || "web".equalsIgnoreCase(System.getenv("TRAZALAB_MODO"))) {
+            System.setProperty("trazalab.web", "true");
+            System.setOut(new java.io.PrintStream(new trazalab.util.SalidaColoreada(
+                    new java.io.FileOutputStream(java.io.FileDescriptor.out)), true,
+                    java.nio.charset.StandardCharsets.UTF_8));
+            if (!iniciarVersionWeb()) {
+                return;
+            }
+        } else {
+            laboratorio = new Laboratorio("Laboratorio Bioquimico San Rafael");
+            usuarioActual = new Profesional("28456789", "Ferreyra", "Lucia", "BQ-4821", "Bioquimico");
+            extraccionista = new Profesional("33112233", "Ledesma", "Carla", "TL-1204", "Extraccionista");
+            cargarDatosDePrueba();
+        }
 
         boolean ejecutando = true;
         while (ejecutando) {
             mostrarMenu();
             int opcion = Consola.leerEntero("  Elija una opcion: ", 0, 10);
-            switch (opcion) {
-                case 1 -> registrarPaciente();
-                case 2 -> gestionarTurnos();
-                case 3 -> registrarOrden();
-                case 4 -> registrarExtraccion();
-                case 5 -> avanzarCircuito();
-                case 6 -> cargarResultados();
-                case 7 -> emitirInforme();
-                case 8 -> consultarCatalogo();
-                case 9 -> verIndicadores();
-                case 10 -> MenuBaseDatos.ejecutar();
-                case 0 -> {
-                    ejecutando = false;
-                    System.out.println("\n  Sesion finalizada. Hasta luego, " + usuarioActual.getNombre() + ".\n");
-                }
-                default -> System.out.println("  [!] Opcion inexistente.");
+            try {
+                // Version web: antes de cada operacion se vuelve a leer la base, para ver
+                // lo que registraron las otras sesiones.
+                laboratorio.sincronizar();
+            } catch (PersistenciaException e) {
+                System.out.println("  [X] " + e.getMessage());
+                continue;
             }
+            try {
+                ejecutarOpcion(opcion);
+            } catch (FallaDePersistenciaException e) {
+                System.out.println("  [X] Error de base de datos: " + e.getMessage());
+                System.out.println("      La operacion no se registro.");
+            }
+            if (opcion == 0) {
+                ejecutando = false;
+            }
+        }
+    }
+
+    private static void ejecutarOpcion(int opcion) {
+        switch (opcion) {
+            case 1 -> registrarPaciente();
+            case 2 -> gestionarTurnos();
+            case 3 -> registrarOrden();
+            case 4 -> registrarExtraccion();
+            case 5 -> avanzarCircuito();
+            case 6 -> cargarResultados();
+            case 7 -> emitirInforme();
+            case 8 -> consultarCatalogo();
+            case 9 -> verIndicadores();
+            case 10 -> ejecutarModuloPersistente();
+            case 0 -> System.out.println("\n  Sesion finalizada. Hasta luego, " + usuarioActual.getNombre() + ".\n");
+            default -> System.out.println("  [!] Opcion inexistente.");
+        }
+    }
+
+    // ------------------------------------------------------------ version web
+
+    /**
+     * Conecta con la base, pide usuario y contrasenia (RF01) y arma el laboratorio
+     * sobre la persistencia completa. Devuelve false si no se pudo ingresar.
+     */
+    private static boolean iniciarVersionWeb() {
+        Consola.titulo("TRAZALAB - Laboratorio Bioquimico San Rafael");
+        System.out.println("  Sistema de trazabilidad de muestras - version web de demostracion");
+        System.out.println("  Datos ficticios. La base se restablece todas las noches.");
+        Consola.separador();
+        try {
+            repositorio = new RepositorioLaboratorio(ConexionBD.getInstancia());
+            for (int intento = 1; intento <= 3 && usuarioActual == null; intento++) {
+                String usuario = Consola.leerTexto("  Usuario: ");
+                char[] clave = leerClave("  Contrasenia: ");
+                usuarioActual = repositorio.autenticar(usuario, clave);
+                java.util.Arrays.fill(clave, ' ');
+                if (usuarioActual == null) {
+                    System.out.println("  [X] Usuario o contrasenia incorrectos." + (intento < 3 ? " Intente de nuevo." : ""));
+                }
+            }
+            if (usuarioActual == null) {
+                System.out.println("  [X] Se agotaron los intentos. Recargue la pagina para volver a empezar.");
+                return false;
+            }
+            extraccionista = "Extraccionista".equals(usuarioActual.obtenerRol())
+                    ? usuarioActual : repositorio.buscarProfesionalPorRol("Extraccionista");
+            if (extraccionista == null) {
+                extraccionista = usuarioActual;
+            }
+            laboratorio = new Laboratorio("Laboratorio Bioquimico San Rafael", repositorio);
+            System.out.println("\n  [OK] Bienvenido/a, " + usuarioActual.getNombreCompleto()
+                    + " (" + usuarioActual.obtenerRol() + ").");
+            return true;
+        } catch (PersistenciaException e) {
+            System.out.println("  [X] " + e.getMessage());
+            System.out.println("      La base de datos no esta disponible. Intente de nuevo en unos minutos.");
+            return false;
+        }
+    }
+
+    /** Lee la contrasenia sin mostrarla (si hay terminal); si no, como texto. */
+    private static char[] leerClave(String mensaje) {
+        java.io.Console terminal = System.console();
+        if (terminal != null) {
+            char[] clave = terminal.readPassword(mensaje);
+            return clave == null ? new char[0] : clave;
+        }
+        return Consola.leerTexto(mensaje).toCharArray();
+    }
+
+    /** Opcion 10: en la web firma los eventos el usuario que ingreso y la conexion queda abierta. */
+    private static void ejecutarModuloPersistente() {
+        if (repositorio == null) {
+            MenuBaseDatos.ejecutar();
+            return;
+        }
+        try {
+            MenuBaseDatos.ejecutar(repositorio.idDe(usuarioActual), false);
+        } catch (PersistenciaException e) {
+            throw new FallaDePersistenciaException(e);
         }
     }
 
@@ -211,10 +309,7 @@ public class MenuPrincipal {
                 System.out.println("  [!] La orden quedo sin practicas: no se registra.");
                 return;
             }
-            Orden orden = laboratorio.crearOrden(paciente, medico);
-            for (Estudio estudio : elegidos) {
-                orden.agregarEstudio(estudio);
-            }
+            Orden orden = laboratorio.crearOrden(paciente, medico, elegidos);
             Consola.separador();
             System.out.println("  Orden " + orden.getNumero() + " registrada.");
             System.out.println("  Total a abonar : $" + String.format("%.2f", orden.calcularTotal()));
@@ -316,7 +411,8 @@ public class MenuPrincipal {
                 String unidad = Consola.leerTexto("    Unidad: ");
                 double min = Consola.leerDecimal("    Referencia minima: ");
                 double max = Consola.leerDecimal("    Referencia maxima: ");
-                Resultado resultado = laboratorio.cargarResultado(muestra, estudio, valor, unidad, min, max);
+                Resultado resultado = laboratorio.cargarResultado(muestra, estudio, valor, unidad, min, max,
+                        usuarioActual.getNombreCompleto());
                 cargados++;
                 if (resultado.esCritico()) {
                     System.out.println("    [!!] VALOR CRITICO: se debe avisar al medico solicitante.");

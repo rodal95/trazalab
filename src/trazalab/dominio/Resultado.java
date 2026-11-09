@@ -21,13 +21,19 @@ public class Resultado implements Comparable<Resultado> {
 
     public Resultado(Muestra muestra, Estudio estudio, double valor, String unidad,
                      double referenciaMin, double referenciaMax) {
+        this(muestra, estudio, valor, unidad, referenciaMin, referenciaMax, LocalDateTime.now());
+    }
+
+    /** Reconstruye un resultado ya cargado, con su fecha de carga original (persistencia). */
+    public Resultado(Muestra muestra, Estudio estudio, double valor, String unidad,
+                     double referenciaMin, double referenciaMax, LocalDateTime fechaCarga) {
         this.muestra = muestra;
         this.estudio = estudio;
         this.valor = valor;
         this.unidad = unidad;
         this.referenciaMin = referenciaMin;
         this.referenciaMax = referenciaMax;
-        this.fechaCarga = LocalDateTime.now();
+        this.fechaCarga = fechaCarga;
         this.validado = false;
     }
 

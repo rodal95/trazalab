@@ -128,6 +128,11 @@ public class ControladorTrazabilidad {
             String ruta = ExportadorArchivos.exportarTrazabilidad(muestra.codigoBarra,
                     muestra.paciente, muestra.orden, historial);
             vista.mostrarExito("Archivo generado: " + ruta);
+            if (Boolean.getBoolean("trazalab.web")) {   // en la web el archivo queda en el servidor: se muestra
+                vista.mostrarMensaje("");
+                vista.mostrarLineas(java.nio.file.Files.readAllLines(java.nio.file.Path.of(ruta),
+                        java.nio.charset.StandardCharsets.UTF_8));
+            }
         } catch (PersistenciaException e) {
             vista.mostrarError(e.getMessage());
         } catch (java.io.IOException e) {

@@ -17,6 +17,9 @@ import trazalab.dominio.Paciente;
 import trazalab.dominio.Profesional;
 import trazalab.dominio.Resultado;
 import trazalab.excepciones.AyunoInsuficienteException;
+import trazalab.excepciones.FallaDePersistenciaException;
+import trazalab.excepciones.PersistenciaException;
+import trazalab.persistencia.RepositorioLaboratorio;
 import trazalab.excepciones.EntidadNoEncontradaException;
 import trazalab.excepciones.MuestraInvalidaException;
 import trazalab.util.Busqueda;
@@ -32,12 +35,12 @@ import trazalab.util.Ordenamiento;
  *
  * @author Alday, Rodrigo Matias
  */
-public class Laboratorio {
+public final class Laboratorio {
 
     private final String nombre;
 
     /** ARREGLO de tamanio fijo: el catalogo de practicas es estable en el tiempo. */
-    private final Estudio[] catalogo;
+    private Estudio[] catalogo;
     /** LISTAS dinamicas: crecen con la operacion diaria. */
     private final List<Paciente> pacientes;
     private final List<Orden> ordenes;
@@ -50,6 +53,8 @@ public class Laboratorio {
     private final BitacoraTrazabilidad bitacora;
     private int contadorOrdenes;
     private int contadorMuestras;
+    /** Persistencia completa de la version web; null en el prototipo en memoria. */
+    private RepositorioLaboratorio repositorio;
 
     public Laboratorio(String nombre) {
         this.nombre = nombre;
@@ -63,6 +68,58 @@ public class Laboratorio {
         this.catalogo = construirCatalogo();
         // El catalogo se ordena por codigo para habilitar la busqueda binaria.
         Ordenamiento.insercionPorCodigo(catalogo);
+    }
+
+    /**
+     * Version web: el laboratorio trabaja contra la base. Cada operacion se guarda en
+     * MySQL y {@link #sincronizar()} vuelve a leer el estado, para que varias sesiones
+     * vean los mismos datos.
+     */
+    public Laboratorio(String nombre, RepositorioLaboratorio repositorio) throws PersistenciaException {
+        this(nombre);
+        this.repositorio = repositorio;
+        this.agenda.setRepositorio(repositorio);
+        sincronizar();
+    }
+
+    /** Vuelve a leer de la base pacientes, catalogo, turnos, ordenes, muestras, trazas y resultados. */
+    public void sincronizar() throws PersistenciaException {
+        if (repositorio == null) {
+            return;
+        }
+        RepositorioLaboratorio.Estado estado = repositorio.cargar();
+        catalogo = estado.catalogo;
+        Ordenamiento.insercionPorCodigo(catalogo);
+        reemplazar(pacientes, estado.pacientes);
+        reemplazar(ordenes, estado.ordenes);
+        reemplazar(muestras, estado.muestras);
+        reemplazar(resultados, estado.resultados);
+        bitacora.restaurar(estado.eventos);
+        agenda.restaurar(estado.turnos, estado.salaDeEspera);
+    }
+
+    private static <T> void reemplazar(List<T> destino, List<T> origen) {
+        destino.clear();
+        destino.addAll(origen);
+    }
+
+    /** Ejecuta una operacion de la base dentro de una regla de negocio. */
+    private interface Operacion {
+        void ejecutar() throws PersistenciaException;
+    }
+
+    private void persistir(Operacion operacion) {
+        if (repositorio != null) {
+            try {
+                operacion.ejecutar();
+            } catch (PersistenciaException e) {
+                throw new FallaDePersistenciaException(e);
+            }
+        }
+    }
+
+    public boolean esPersistente() {
+        return repositorio != null;
     }
 
     /** Carga inicial del catalogo de practicas con datos de prueba. */
@@ -84,6 +141,7 @@ public class Laboratorio {
     // ---------------------------------------------------------------- pacientes
 
     public void registrarPaciente(Paciente paciente) {
+        persistir(() -> repositorio.insertarPaciente(paciente));
         pacientes.add(paciente);
         pilaDeAcciones.push("Alta de paciente " + paciente.getDni());
     }
@@ -111,6 +169,34 @@ public class Laboratorio {
     public Orden crearOrden(Paciente paciente, String medico) {
         contadorOrdenes++;
         Orden orden = new Orden(String.format("O-%04d", contadorOrdenes), paciente, medico);
+        ordenes.add(orden);
+        pilaDeAcciones.push("Alta de orden " + orden.getNumero());
+        return orden;
+    }
+
+    /**
+     * Registra la orden con sus practicas. En la version web se guarda con su detalle y
+     * su total en una sola transaccion, y el numero lo asigna la base.
+     */
+    public Orden crearOrden(Paciente paciente, String medico, List<Estudio> estudios) {
+        String numero;
+        if (repositorio != null) {
+            double total = 0;
+            for (Estudio estudio : estudios) {
+                total += estudio.calcularPrecio();
+            }
+            String[] asignado = new String[1];
+            double totalOrden = total;
+            persistir(() -> asignado[0] = repositorio.insertarOrden(paciente, medico, estudios, totalOrden));
+            numero = asignado[0];
+        } else {
+            contadorOrdenes++;
+            numero = String.format("O-%04d", contadorOrdenes);
+        }
+        Orden orden = new Orden(numero, paciente, medico);
+        for (Estudio estudio : estudios) {
+            orden.agregarEstudio(estudio);
+        }
         ordenes.add(orden);
         pilaDeAcciones.push("Alta de orden " + orden.getNumero());
         return orden;
@@ -160,15 +246,23 @@ public class Laboratorio {
         }
         List<Muestra> generadas = new ArrayList<>();
         for (String tipo : tiposPendientes) {
-            contadorMuestras++;
-            String codigo = String.format("M-%s-%04d", tipo.substring(0, 3).toUpperCase(), contadorMuestras);
+            String observacion = "Rotulo generado para la orden " + orden.getNumero();
+            String codigo;
+            if (repositorio != null) {
+                String[] asignado = new String[1];
+                persistir(() -> asignado[0] = repositorio.insertarMuestra(orden, tipo, responsable, observacion));
+                codigo = asignado[0];
+            } else {
+                contadorMuestras++;
+                codigo = String.format("M-%s-%04d", tipo.substring(0, 3).toUpperCase(), contadorMuestras);
+            }
             Muestra muestra = new Muestra(codigo, tipo, orden);
-            bitacora.registrar(muestra, new EventoTraza(null, EstadoMuestra.GENERADA, responsable,
-                    "Rotulo generado para la orden " + orden.getNumero()));
+            bitacora.registrar(muestra, new EventoTraza(null, EstadoMuestra.GENERADA, responsable, observacion));
             muestras.add(muestra);
             generadas.add(muestra);
         }
         orden.setEstado("Con muestras");
+        persistir(() -> repositorio.actualizarEstadoOrden(orden));
         pilaDeAcciones.push("Generacion de " + generadas.size() + " muestra(s) para " + orden.getNumero());
         return generadas;
     }
@@ -220,6 +314,7 @@ public class Laboratorio {
             throw new MuestraInvalidaException("La muestra " + muestra.getCodigoBarra()
                     + " esta en estado " + actual + " y no puede pasar a " + destino + ".");
         }
+        persistir(() -> repositorio.registrarTransicion(muestra, actual, destino, responsable, observacion));
         EventoTraza evento = new EventoTraza(actual, destino, responsable, observacion);
         muestra.setEstado(destino);
         if (destino == EstadoMuestra.EXTRAIDA) {
@@ -255,6 +350,13 @@ public class Laboratorio {
      */
     public Resultado cargarResultado(Muestra muestra, Estudio estudio, double valor, String unidad,
                                      double refMin, double refMax) throws MuestraInvalidaException {
+        return cargarResultado(muestra, estudio, valor, unidad, refMin, refMax, null);
+    }
+
+    /** Igual que el anterior, registrando quien cargo el resultado (version web). */
+    public Resultado cargarResultado(Muestra muestra, Estudio estudio, double valor, String unidad,
+                                     double refMin, double refMax, String cargadoPor)
+            throws MuestraInvalidaException {
         if (muestra.getEstado() != EstadoMuestra.EN_PROCESO && muestra.getEstado() != EstadoMuestra.ANALIZADA) {
             throw new MuestraInvalidaException("La muestra " + muestra.getCodigoBarra() + " esta en estado "
                     + muestra.getEstado() + ": los resultados se cargan en EN_PROCESO o ANALIZADA.");
@@ -269,6 +371,7 @@ public class Laboratorio {
                     + muestra.getCodigoBarra() + " ya fue cargado.");
         }
         Resultado resultado = new Resultado(muestra, estudio, valor, unidad, refMin, refMax);
+        persistir(() -> repositorio.insertarResultado(resultado, cargadoPor));
         resultados.add(resultado);
         pilaDeAcciones.push("Carga de resultado " + estudio.getCodigo() + " en " + muestra.getCodigoBarra());
         return resultado;
@@ -331,6 +434,9 @@ public class Laboratorio {
                 }
                 continue;
             }
+            EstadoMuestra anterior = muestra.getEstado();
+            persistir(() -> repositorio.validarMuestra(muestra, anterior, bioquimico.getNombreCompleto(),
+                    "Resultados validados, informe liberado"));
             for (Resultado resultado : resultados) {
                 if (resultado.getMuestra().equals(muestra) && !resultado.isValidado()) {
                     resultado.setValidado(true);
@@ -339,8 +445,14 @@ public class Laboratorio {
                     validados++;
                 }
             }
-            aplicarTransicion(muestra, EstadoMuestra.INFORMADA, bioquimico.getNombreCompleto(),
-                    "Resultados validados, informe liberado");
+            if (repositorio != null) {   // la base ya registro el cambio y su traza en la misma transaccion
+                bitacora.registrar(muestra, new EventoTraza(anterior, EstadoMuestra.INFORMADA,
+                        bioquimico.getNombreCompleto(), "Resultados validados, informe liberado"));
+                muestra.setEstado(EstadoMuestra.INFORMADA);
+            } else {
+                aplicarTransicion(muestra, EstadoMuestra.INFORMADA, bioquimico.getNombreCompleto(),
+                        "Resultados validados, informe liberado");
+            }
         }
         if (validados == 0) {
             throw new MuestraInvalidaException("No se puede validar la orden " + orden.getNumero() + ": "
@@ -353,6 +465,7 @@ public class Laboratorio {
             }
         }
         orden.setEstado(completa ? "Informada" : "Informada en parte");
+        persistir(() -> repositorio.actualizarEstadoOrden(orden));
         pilaDeAcciones.push("Validacion de " + validados + " resultado(s) de " + orden.getNumero());
         return validados;
     }

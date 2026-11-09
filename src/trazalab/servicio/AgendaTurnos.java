@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Queue;
 import trazalab.dominio.Paciente;
 import trazalab.dominio.Turno;
+import trazalab.excepciones.FallaDePersistenciaException;
+import trazalab.excepciones.PersistenciaException;
 import trazalab.excepciones.TurnoNoDisponibleException;
+import trazalab.persistencia.RepositorioLaboratorio;
 
 /**
  * Agenda de turnos del laboratorio. Utiliza una COLA (FIFO) para la sala de
@@ -26,6 +29,8 @@ public class AgendaTurnos {
     /** ESTRUCTURA COLA: sala de espera, atencion por orden de llegada. */
     private final Queue<Turno> salaDeEspera;
     private int contadorTurnos;
+    /** Persistencia de la version web; null en el prototipo en memoria. */
+    private RepositorioLaboratorio repositorio;
 
     public AgendaTurnos() {
         this.turnosOtorgados = new ArrayList<>();
@@ -50,9 +55,19 @@ public class AgendaTurnos {
             throw new TurnoNoDisponibleException("La franja de las " + hora
                     + ":00 ya tiene " + ocupados + " turnos y el cupo es de " + CUPO_POR_FRANJA + ".");
         }
-        contadorTurnos++;
         int box = ocupados + 1;
-        Turno turno = new Turno(String.format("T-%04d", contadorTurnos), paciente, fechaHora, box);
+        String numero;
+        if (repositorio != null) {
+            try {
+                numero = repositorio.insertarTurno(paciente, fechaHora, box);
+            } catch (PersistenciaException e) {
+                throw new FallaDePersistenciaException(e);
+            }
+        } else {
+            contadorTurnos++;
+            numero = String.format("T-%04d", contadorTurnos);
+        }
+        Turno turno = new Turno(numero, paciente, fechaHora, box);
         turnosOtorgados.add(turno);
         return turno;
     }
@@ -95,6 +110,7 @@ public class AgendaTurnos {
                     + " ya figura como " + turno.getEstado() + ".");
         }
         turno.setEstado("Presente");
+        persistir(turno);
         salaDeEspera.offer(turno);
     }
 
@@ -105,7 +121,31 @@ public class AgendaTurnos {
             throw new TurnoNoDisponibleException("No hay pacientes en la sala de espera.");
         }
         turno.setEstado("Atendido");
+        persistir(turno);
         return turno;
+    }
+
+    private void persistir(Turno turno) {
+        if (repositorio != null) {
+            try {
+                repositorio.actualizarTurno(turno);
+            } catch (PersistenciaException e) {
+                throw new FallaDePersistenciaException(e);
+            }
+        }
+    }
+
+    /** Conecta la agenda con la base (version web). */
+    void setRepositorio(RepositorioLaboratorio repositorio) {
+        this.repositorio = repositorio;
+    }
+
+    /** Reemplaza los turnos y la cola por los leidos de la base (version web). */
+    void restaurar(List<Turno> turnos, List<Turno> cola) {
+        turnosOtorgados.clear();
+        turnosOtorgados.addAll(turnos);
+        salaDeEspera.clear();
+        salaDeEspera.addAll(cola);
     }
 
     public int getPacientesEsperando() {

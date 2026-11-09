@@ -21,9 +21,15 @@ public class EventoTraza {
 
     public EventoTraza(EstadoMuestra estadoAnterior, EstadoMuestra estadoNuevo,
                        String responsable, String observacion) {
+        this(estadoAnterior, estadoNuevo, responsable, observacion, LocalDateTime.now());
+    }
+
+    /** Reconstruye un evento ya registrado en la bitacora, con su fecha original (persistencia). */
+    public EventoTraza(EstadoMuestra estadoAnterior, EstadoMuestra estadoNuevo,
+                       String responsable, String observacion, LocalDateTime fechaHora) {
         this.estadoAnterior = estadoAnterior;
         this.estadoNuevo = estadoNuevo;
-        this.fechaHora = LocalDateTime.now();
+        this.fechaHora = fechaHora;
         this.responsable = responsable;
         this.observacion = observacion;
     }
