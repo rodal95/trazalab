@@ -528,7 +528,9 @@ public class MenuPrincipal {
         }
         Consola.separador();
         System.out.printf("  TAT de las informadas : %.1f minutos%n", laboratorio.calcularTatPromedio());
-        System.out.println("  Ultima accion (pila)  : " + laboratorio.consultarUltimaAccion());
+        String ultima = laboratorio.consultarUltimaAccion();
+        System.out.println("  Ultima accion (pila)  : " + (ultima != null ? ultima
+                : laboratorio.esPersistente() ? "(ninguna en esta sesion)" : "null"));
         System.out.println("  Acciones recientes, desde el tope de la pila:");
         for (String accion : laboratorio.consultarUltimasAcciones(5)) {
             System.out.println("    " + accion);

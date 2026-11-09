@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRAZALAB · Manual de uso y pruebas</title>
+<meta name="description" content="Versión web de demostración de TRAZALAB, sistema de trazabilidad de muestras del Laboratorio Bioquímico San Rafael.">
+<style>
+  :root{--fondo:#0f1916;--panel:#16211e;--linea:#2c3834;--texto:#dbe0df;--suave:#a7aeac;--acento:#2db29a;
+        --ok:#4fc99b;--error:#ef6b67;--dato:#f0c46c;--codigo:#0b1210}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--acento)}
+  header{border-bottom:1px solid var(--linea);padding:40px 16px 32px}
+  .ancho{max-width:980px;margin:0 auto}
+  .marca{color:var(--acento);font-weight:700;letter-spacing:4px;font-size:14px}
+  h1{font-size:34px;line-height:1.2;margin:10px 0 8px}
+  .bajada{color:var(--suave);margin:0 0 24px;max-width:720px}
+  .botones{display:flex;flex-wrap:wrap;gap:12px}
+  .boton{display:inline-block;padding:12px 22px;border-radius:8px;font-weight:600;text-decoration:none}
+  .principal{background:var(--acento);color:#06110e}
+  .secundario{border:1px solid var(--linea);color:var(--texto)}
+  nav{position:sticky;top:0;background:rgba(15,25,22,.96);border-bottom:1px solid var(--linea);z-index:2}
+  nav .ancho{display:flex;gap:18px;overflow-x:auto;padding:10px 16px;white-space:nowrap;font-size:14px}
+  nav a{color:var(--suave);text-decoration:none} nav a:hover{color:var(--texto)}
+  main{padding:8px 16px 64px}
+  section{padding-top:28px}
+  h2{font-size:24px;margin:24px 0 10px;border-bottom:1px solid var(--linea);padding-bottom:6px}
+  h3{font-size:18px;margin:22px 0 8px}
+  .nota{background:var(--panel);border-left:4px solid var(--acento);padding:12px 16px;border-radius:6px;margin:14px 0}
+  .tabla{overflow-x:auto;margin:12px 0}
+  table{border-collapse:collapse;width:100%;font-size:14.5px}
+  th,td{border-bottom:1px solid var(--linea);padding:8px 10px;text-align:left;vertical-align:top}
+  th{color:var(--suave);font-weight:600;background:var(--panel)}
+  td:first-child{white-space:nowrap}
+  code,kbd,pre{font-family:"DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace}
+  code{font-size:.92em;background:var(--panel);padding:1px 5px;border-radius:4px}
+  kbd{font-size:.86em;border:1px solid var(--linea);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--panel)}
+  pre{background:var(--codigo);border:1px solid var(--linea);border-radius:6px;padding:10px 12px;font-size:12.5px;
+      line-height:1.5;overflow-x:auto;white-space:pre;margin:6px 0}
+  .ok{color:var(--ok)} .err{color:var(--error)} .dato{color:var(--dato)}
+  .caso{background:var(--panel);border:1px solid var(--linea);border-radius:8px;padding:14px 16px;margin:14px 0;break-inside:avoid}
+  .caso h3{margin:0 0 6px;font-size:17px}
+  .caso .id{color:var(--acento);font-family:"DejaVu Sans Mono",monospace;margin-right:8px}
+  .caso dl{margin:6px 0 0;display:grid;grid-template-columns:150px 1fr;gap:4px 12px}
+  .caso dt{color:var(--suave);font-size:14px}
+  .caso dd{margin:0;min-width:0}
+  ol li,ul li{margin:4px 0}
+  footer{border-top:1px solid var(--linea);color:var(--suave);font-size:14px;padding:20px 16px}
+  @media (max-width:640px){
+    h1{font-size:27px}
+    .caso dl{grid-template-columns:1fr}
+    .caso dt{margin-top:6px}
+  }
+  /* Version para el PDF: fondo claro y sin la navegacion */
+  @media print{
+    :root{--fondo:#fff;--panel:#f3f6f5;--linea:#cfd8d5;--texto:#17201d;--suave:#4c5955;--acento:#0f6b5c;
+          --ok:#14784f;--error:#b42318;--dato:#8a5a00;--codigo:#f6f8f7}
+    body{font-size:11pt}
+    nav,.botones{display:none}
+    header{padding:0 0 12px}
+    section{padding-top:6px}
+    h2{break-after:avoid}
+    pre{white-space:pre-wrap;font-size:8.5pt}
+    a{color:var(--texto);text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="ancho">
+    <div class="marca">TRAZALAB</div>
+    <h1>Sistema de trazabilidad de muestras<br>Laboratorio Bioquímico San Rafael</h1>
+    <p class="bajada">Versión web de demostración del proyecto integrador (Seminario de Práctica Profesional,
+      Universidad Siglo 21). Es la misma aplicación de consola en Java, publicada en el navegador y conectada a una
+      base MySQL con datos ficticios.</p>
+    <div class="botones">
+      <a class="boton principal" href="/consola/">Abrir la consola</a>
+      <a class="boton secundario" href="/manual.pdf">Descargar el manual (PDF)</a>
+    </div>
+  </div>
+</header>
+
+<nav><div class="ancho">
+  <a href="#ingreso">Ingreso</a><a href="#consola">Uso de la consola</a><a href="#menu">Menú</a>
+  <a href="#datos">Datos de demostración</a><a href="#recorrido">Recorrido sugerido</a><a href="#pruebas">Casos de prueba</a>
+  <a href="#tecnico">Funcionamiento</a>
+</div></nav>
+
+<main><div class="ancho">
+
+<section id="ingreso">
+  <h2>1. Ingreso</h2>
+  <ol>
+    <li>Abra la consola con el botón <b>Abrir la consola</b> o en <a href="/consola/"><code>/consola/</code></a>.</li>
+    <li>Escriba el <b>usuario</b> y la <b>contraseña de demostración</b> que figuran en el informe del AP4. La
+      contraseña no se muestra mientras se escribe.</li>
+    <li>Si los datos son correctos, aparece <span class="ok">[OK] Bienvenido/a, …</span> y el menú principal. Tras
+      tres intentos fallidos la sesión termina: recargue la página para volver a empezar.</li>
+  </ol>
+  <div class="nota">El usuario de demostración tiene el rol <b>Bioquímico</b>: puede usar todas las opciones,
+    incluida la validación de resultados. Lo que registre queda guardado en la base y lo ven las demás sesiones.</div>
+</section>
+
+<section id="consola">
+  <h2>2. Uso de la consola</h2>
+  <ul>
+    <li>Cada pantalla pide un dato. Escríbalo y presione <kbd>Enter</kbd>.</li>
+    <li>En los menús se escribe el <b>número</b> de la opción. Las preguntas de sí o no se responden con <kbd>s</kbd> o <kbd>n</kbd>.</li>
+    <li>Los valores decimales aceptan coma o punto: <code>2,1</code> o <code>2.1</code>.</li>
+    <li>Los mensajes indican el resultado de cada operación:
+      <span class="ok">[OK]</span> se registró,
+      <span class="err">[X]</span> se rechazó y por qué,
+      <span class="dato">[!]</span> advertencia,
+      <span style="color:#5fc4d8">[i]</span> información.</li>
+    <li>Con la opción <kbd>0</kbd> se cierra la sesión. Para abrir otra, recargue la página.</li>
+    <li>Pueden trabajar hasta <b>10 personas a la vez</b>; cada pestaña es una sesión distinta.</li>
+    <li>Todas las noches, a las 4 (hora de Córdoba), la base vuelve a los datos iniciales.</li>
+  </ul>
+</section>
+
+<section id="menu">
+  <h2>3. Opciones del menú</h2>
+  <div class="tabla"><table>
+    <thead><tr><th>Opción</th><th>Para qué sirve</th><th>Qué pide</th></tr></thead>
+    <tbody>
+      <tr><td>1. Registrar paciente</td><td>Alta de un paciente. Si el DNI ya existe, lo informa.</td><td>DNI, apellido, nombre, fecha de nacimiento, obra social y teléfono.</td></tr>
+      <tr><td>2. Turnos y sala de espera</td><td>Otorgar turnos (de 7 a 11, cuatro boxes por franja), registrar la llegada, llamar al siguiente y ver la cola.</td><td>Subopción, DNI y hora (formato 24 h). Los turnos se dan para el día siguiente.</td></tr>
+      <tr><td>3. Registrar orden de estudios</td><td>Orden con una o más prácticas. Calcula importe, ayuno exigido, demora y tipos de muestra.</td><td>DNI, médico solicitante y códigos de práctica (por ejemplo <code>GLU01</code>).</td></tr>
+      <tr><td>4. Registrar extracción</td><td>Genera una muestra por tipo, con su código. Rechaza la extracción si el ayuno declarado no alcanza.</td><td>Número de orden y horas de ayuno declaradas.</td></tr>
+      <tr><td>5. Avanzar circuito de una muestra</td><td>Cambia el estado de una muestra. Solo permite el estado siguiente o la anulación.</td><td>Código de barra, nuevo estado y observación.</td></tr>
+      <tr><td>6. Cargar resultados</td><td>Carga los resultados de una muestra en proceso o analizada, y marca los valores fuera de rango o críticos.</td><td>Código de barra y, por cada práctica, valor, unidad y rango de referencia.</td></tr>
+      <tr><td>7. Validar y emitir informe</td><td>Valida los resultados de las muestras analizadas, las pasa a INFORMADA y muestra el informe.</td><td>Número de orden.</td></tr>
+      <tr><td>8. Consultar catálogo</td><td>Lista de prácticas por código o por precio, y búsqueda por código.</td><td>Subopción y, si busca, el código.</td></tr>
+      <tr><td>9. Indicadores de gestión</td><td>Totales, muestras por estado, tiempo de respuesta y últimas acciones de la sesión.</td><td>Nada.</td></tr>
+      <tr><td>10. Módulo persistente</td><td>Patrón MVC sobre MySQL: muestras en circuito, registro de eventos, catálogo, precios, indicadores, pacientes y certificado de trazabilidad.</td><td>Subopción y los datos de cada una.</td></tr>
+      <tr><td>0. Salir</td><td>Cierra la sesión.</td><td>Nada.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="datos">
+  <h2>4. Datos de demostración</h2>
+  <p>Son los datos con los que arranca la base cada día. Los números nuevos (turnos, órdenes y muestras) siguen la
+    numeración: si otras personas ya cargaron datos, pueden ser distintos a los de este manual.</p>
+
+  <h3>Pacientes</h3>
+  <div class="tabla"><table>
+    <thead><tr><th>DNI</th><th>Paciente</th><th>Situación</th></tr></thead>
+    <tbody>
+      <tr><td>30111222</td><td>Gomez, Marcela</td><td>Orden O-0001 en proceso.</td></tr>
+      <tr><td>45222333</td><td>Suarez, Tomas</td><td>Paciente pediátrico. Orden O-0002, muestra extraída.</td></tr>
+      <tr><td>12888999</td><td>Rios, Alberto</td><td>En la sala de espera (primero de la cola). Orden O-0003 sin muestras.</td></tr>
+      <tr><td>35777888</td><td>Paez, Julieta</td><td>Orden O-0004 lista para extraer (exige 12 h de ayuno).</td></tr>
+      <tr><td>27444555</td><td>Molina, Sergio</td><td>Orden O-0005 informada (circuito completo).</td></tr>
+      <tr><td>38123456</td><td>Bustos, Ana</td><td>Orden O-0006 con la muestra en proceso, sin resultados.</td></tr>
+      <tr><td>29876543</td><td>Luna, Pedro</td><td>Orden O-0007, muestra de orina extraída.</td></tr>
+      <tr><td>50111333</td><td>Herrera, Valentina</td><td>En la sala de espera.</td></tr>
+      <tr><td>16555444</td><td>Castro, Elena</td><td>En la sala de espera.</td></tr>
+      <tr><td>41999000</td><td>Vera, Lucas</td><td>Turno mañana a las 9.</td></tr>
+      <tr><td>33444777</td><td>Godoy, Mariana</td><td>Turno mañana a las 9.</td></tr>
+      <tr><td>24333111</td><td>Sosa, Ricardo</td><td>Turno mañana a las 9.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Mañana, la franja de las <b>9:00</b> tiene sus cuatro boxes ocupados: sirve para probar el cupo.</p>
+
+  <h3>Órdenes y muestras</h3>
+  <div class="tabla"><table>
+    <thead><tr><th>Orden</th><th>Prácticas</th><th>Muestras</th><th>Sirve para probar</th></tr></thead>
+    <tbody>
+      <tr><td>O-0001</td><td>GLU01, COL01, ORI01</td><td>M-SUE-0001 ANALIZADA (2 resultados), M-ORI-0002 EN_PROCESO</td><td>Validación parcial del informe (opción 7).</td></tr>
+      <tr><td>O-0002</td><td>HEM01</td><td>M-SAN-0003 EXTRAIDA</td><td>Avance del circuito (opciones 5 y 10).</td></tr>
+      <tr><td>O-0003</td><td>TSH01</td><td>—</td><td>Extracción sin ayuno.</td></tr>
+      <tr><td>O-0004</td><td>GLU01, COL01, HEM01</td><td>—</td><td>Regla de ayuno (opción 4).</td></tr>
+      <tr><td>O-0005</td><td>HEM01</td><td>M-SAN-0004 INFORMADA</td><td>Historial completo y certificado (10 → 7).</td></tr>
+      <tr><td>O-0006</td><td>TSH01, VIT01</td><td>M-SUE-0005 EN_PROCESO</td><td>Carga de resultados (opción 6).</td></tr>
+      <tr><td>O-0007</td><td>ORI01</td><td>M-ORI-0006 EXTRAIDA</td><td>Avance del circuito.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Catálogo de prácticas</h3>
+  <p><code>HEM01</code> Hemograma · <code>GLU01</code> Glucemia (8 h de ayuno) · <code>COL01</code> Colesterol (12 h) ·
+    <code>TRI01</code> Triglicéridos (12 h) · <code>ORI01</code> Orina completa · <code>TSH01</code> TSH ·
+    <code>VIT01</code> Vitamina D · <code>PCR01</code> PCR cuantitativa · <code>GEN01</code> Panel genético ·
+    <code>CEL01</code> Anticuerpos anti-transglutaminasa (4 h).</p>
+</section>
+
+<section id="recorrido">
+  <h2>5. Recorrido sugerido (5 minutos)</h2>
+  <ol>
+    <li><b>2 → 4</b>: ver la sala de espera, ordenada por llegada. <b>2 → 3</b>: llamar al siguiente.</li>
+    <li><b>2 → 1</b> con DNI <code>41999000</code>: pedir turno a las <code>15</code> (fuera de horario), a las
+      <code>9</code> (sin cupo) y a las <code>8</code> (se otorga).</li>
+    <li><b>4</b> con la orden <code>O-0004</code>: declarar <code>6</code> horas de ayuno (se rechaza) y después
+      <code>12</code> (se generan las dos muestras).</li>
+    <li><b>6</b> con <code>M-SUE-0005</code>: cargar TSH y vitamina D. <b>5</b>: pasar la muestra a ANALIZADA.
+      <b>7</b> con <code>O-0006</code>: validar y emitir el informe.</li>
+    <li><b>10 → 7</b> con <code>M-SAN-0004</code>: ver el certificado de trazabilidad con los cinco eventos.</li>
+  </ol>
+</section>
+
+<section id="pruebas">
+  <h2>6. Casos de prueba</h2>
+  <p>Cada caso es una sesión nueva que ingresa con el usuario de demostración. Las entradas se escriben en el orden
+    indicado, separadas por <kbd>Enter</kbd>. Los resultados esperados son las salidas reales de la ejecución del
+    9/11/2026 sobre la base recién restablecida, con los casos ejecutados en este orden.</p>
+
+  <div class="caso"><h3><span class="id">CPW01</span>Ingreso con contraseña incorrecta (RF01)</h3><dl>
+    <dt>Entradas</dt><dd>Usuario de demostración y una contraseña incorrecta, tres veces.</dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="err">  [X] Usuario o contrasenia incorrectos. Intente de nuevo.
+  [X] Usuario o contrasenia incorrectos. Intente de nuevo.
+  [X] Usuario o contrasenia incorrectos.
+  [X] Se agotaron los intentos. Recargue la pagina para volver a empezar.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW02</span>Turno fuera del horario de extracción</h3><dl>
+    <dt>Entradas</dt><dd><code>2</code>, <code>1</code>, <code>41999000</code>, <code>15</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="err">  [X] El laboratorio extrae de 7:00 a 11:00. Horario solicitado: 15:00.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW03</span>Franja sin cupo</h3><dl>
+    <dt>Entradas</dt><dd><code>2</code>, <code>1</code>, <code>41999000</code>, <code>9</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="err">  [X] La franja de las 9:00 ya tiene 4 turnos y el cupo es de 4.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW04</span>Turno otorgado</h3><dl>
+    <dt>Entradas</dt><dd><code>2</code>, <code>1</code>, <code>41999000</code>, <code>8</code></dd>
+    <dt>Resultado esperado</dt><dd>Turno para el día siguiente a las 8, en el box 1:
+      <pre><span class="ok">  [OK] Turno otorgado: T-0016   10/11/2026 08:00  box 1  Vera, Lucas              Otorgado</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW05</span>Sala de espera por orden de llegada (cola)</h3><dl>
+    <dt>Entradas</dt><dd><code>2</code>, <code>4</code> · <code>2</code>, <code>3</code> · <code>2</code>, <code>4</code></dd>
+    <dt>Resultado esperado</dt><dd>Se llama primero a quien llegó primero, y la cola se acorta:
+      <pre>    1. T-0003   09/11/2026 08:00  box 1  Rios, Alberto            Presente
+    2. T-0009   09/11/2026 08:30  box 1  Herrera, Valentina       Presente
+    3. T-0010   09/11/2026 08:30  box 2  Castro, Elena            Presente
+<span class="ok">  [OK] Se llama a Rios, Alberto (turno T-0003) al box 1.</span>
+<span style="color:#5fc4d8">  [i] Pacientes que siguen en espera: 2</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW06</span>Alta de paciente y DNI repetido</h3><dl>
+    <dt>Entradas</dt><dd><code>1</code>, <code>30111222</code> · <code>1</code>, <code>40222888</code>, <code>Lopez</code>,
+      <code>Sofia</code>, <code>1995</code>, <code>6</code>, <code>15</code>, <code>APROSS</code>, <code>3534-000000</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="dato">  [!] El paciente ya esta registrado: Gomez, Marcela</span>
+<span class="ok">  [OK] Paciente registrado: Lopez, Sofia                 DNI 40222888    31 anios  O.S.: APROSS</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW07</span>Orden con cálculo de importe, ayuno y muestras</h3><dl>
+    <dt>Entradas</dt><dd><code>3</code>, <code>30111222</code>, <code>Dra. Prueba</code>, <code>GLU01</code>, <code>s</code>, <code>TRI01</code>, <code>n</code></dd>
+    <dt>Resultado esperado</dt><dd>Importe con el descuento de perfil, el mayor ayuno de las prácticas y un solo tipo de muestra:
+      <pre>  Total a abonar : $8100,00
+  Ayuno requerido: 12 horas
+  Muestras a extraer: [Suero]</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW08</span>Ayuno insuficiente (excepción propia)</h3><dl>
+    <dt>Entradas</dt><dd><code>4</code>, <code>O-0004</code>, <code>6</code></dd>
+    <dt>Resultado esperado</dt><dd>No se genera ninguna muestra:
+      <pre><span class="err">  [X] Ayuno insuficiente: La orden O-0004 exige 12 h de ayuno y el paciente declaro 6 h.
+      Faltan 6 horas. Se debe reprogramar el turno.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW09</span>Extracción con el ayuno correcto</h3><dl>
+    <dt>Entradas</dt><dd><code>4</code>, <code>O-0004</code>, <code>12</code></dd>
+    <dt>Resultado esperado</dt><dd>Una muestra por tipo, cada una con su código:
+      <pre><span class="ok">  [OK] Se generaron 2 muestra(s):</span>
+    M-SUE-0007   Suero      orden O-0004   EXTRAIDA     (Extraida al paciente)
+    M-SAN-0008   Sangre entera orden O-0004   EXTRAIDA     (Extraida al paciente)</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW10</span>Retroceso de estado rechazado (RF18)</h3><dl>
+    <dt>Entradas</dt><dd><code>5</code>, <code>M-SUE-0001</code>, <code>2</code> (EXTRAIDA), <code>Retroceso de prueba</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="err">  [X] Transicion invalida: La muestra M-SUE-0001 esta en estado ANALIZADA y no puede pasar a EXTRAIDA.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW11</span>Carga de resultados con control de rango</h3><dl>
+    <dt>Entradas</dt><dd><code>6</code>, <code>M-SUE-0005</code> · TSH: <code>2,1</code>, <code>uUI/mL</code>, <code>0,4</code>, <code>4</code> ·
+      Vitamina D: <code>18</code>, <code>ng/mL</code>, <code>30</code>, <code>100</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="ok">    [OK] Valor dentro del rango de referencia.</span>
+<span class="dato">    [!] Valor fuera del rango de referencia.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW12</span>Validación parcial del informe</h3><dl>
+    <dt>Entradas</dt><dd><code>7</code>, <code>O-0001</code></dd>
+    <dt>Resultado esperado</dt><dd>Se valida la muestra analizada; la de orina sigue en proceso:
+      <pre>  Validado por: Demo, Usuario - Mat. BQ-0000
+  Resultados validados en esta operacion: 2
+  Estado de la orden: Informada en parte
+    M-SUE-0001   Suero      orden O-0001   INFORMADA    (Informada y liberada)</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW13</span>Evento de trazabilidad en MySQL y retroceso rechazado</h3><dl>
+    <dt>Entradas</dt><dd><code>10</code>, <code>2</code>, <code>M-SAN-0003</code>, <code>3</code>, <code>Ingresa a hematologia</code> ·
+      <code>2</code>, <code>M-SAN-0004</code>, <code>2</code>, <code>Retroceso de prueba</code></dd>
+    <dt>Resultado esperado</dt><dd><pre><span class="ok">  [OK] Evento registrado en la base de datos. Muestra M-SAN-0003 en estado EN_PROCESO.</span>
+<span class="err">  [X] La muestra M-SAN-0004 esta en estado INFORMADA y no puede pasar a EXTRAIDA.</span></pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW14</span>Certificado de trazabilidad</h3><dl>
+    <dt>Entradas</dt><dd><code>10</code>, <code>7</code>, <code>M-SAN-0004</code></dd>
+    <dt>Resultado esperado</dt><dd>El certificado con los cinco eventos de la muestra (las fechas son las del día anterior a la carga de la base):
+      <pre>Muestra   : M-SAN-0004
+08/11/2026 07:33:00  (alta)     -> GENERADA    Ledesma, Carla       Extraccionista  Rotulo generado en box 1
+08/11/2026 07:35:00  GENERADA   -> EXTRAIDA    Ledesma, Carla       Extraccionista  Extraccion en box 1
+08/11/2026 08:05:00  EXTRAIDA   -> EN_PROCESO  Ferreyra, Lucia      Bioquimico      Ingresa al contador hematologico
+08/11/2026 09:10:00  EN_PROCESO -> ANALIZADA   Ferreyra, Lucia      Bioquimico      Analisis finalizado
+08/11/2026 11:20:00  ANALIZADA  -> INFORMADA   Ferreyra, Lucia      Bioquimico      Resultados validados, informe liberado
+Total de eventos: 5</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW15</span>Indicadores de gestión</h3><dl>
+    <dt>Entradas</dt><dd><code>9</code></dd>
+    <dt>Resultado esperado</dt><dd>Los totales incluyen lo registrado en los casos anteriores:
+      <pre>  Pacientes registrados : 13
+  Turnos otorgados      : 16
+  Pacientes en espera   : 2
+  Ordenes registradas   : 8
+  Muestras generadas    : 8</pre></dd></dl></div>
+
+  <div class="caso"><h3><span class="id">CPW16</span>Persistencia entre sesiones</h3><dl>
+    <dt>Entradas</dt><dd>En una sesión nueva: <code>1</code>, <code>40222888</code> (el paciente dado de alta en CPW06)</dd>
+    <dt>Resultado esperado</dt><dd>La nueva sesión lee el alta desde la base:
+      <pre><span class="dato">  [!] El paciente ya esta registrado: Lopez, Sofia</span></pre></dd></dl></div>
+</section>
+
+<section id="tecnico">
+  <h2>7. Funcionamiento</h2>
+  <ul>
+    <li>La consola se publica con <b>ttyd</b>: cada pestaña abre su propia sesión de la aplicación Java, que no
+      ofrece acceso a ninguna otra parte del servidor.</li>
+    <li>Todas las operaciones se guardan en <b>MySQL 8</b>, cada una en su propia transacción. Antes de cada opción la
+      aplicación vuelve a leer la base, así se ve lo que registraron las otras sesiones.</li>
+    <li>La bitácora de trazabilidad es inalterable: los disparadores de la base rechazan cualquier modificación o
+      eliminación de un evento (RNF04).</li>
+    <li>El ingreso verifica la contraseña contra su hash SHA-256 en la tabla <code>usuarios</code> (RF01, RNF03).</li>
+    <li>Código fuente: <a href="https://github.com/rodal95/trazalab">github.com/rodal95/trazalab</a>, rama <code>web</code>.</li>
+  </ul>
+</section>
+
+</div></main>
+<footer><div class="ancho">TRAZALAB · Alday, Rodrigo Matías · Seminario de Práctica Profesional · Universidad Siglo 21 · Datos ficticios.</div></footer>
+</body>
+</html>

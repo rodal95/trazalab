@@ -38,13 +38,24 @@ fi
 ) &
 
 # Cada conexion abre su propia sesion de TRAZALAB. ttyd no ofrece una shell:
-# solo ejecuta la aplicacion, y al salir de ella la sesion termina.
-exec ttyd --port "$PUERTO" --writable --max-clients "${MAX_SESIONES:-10}" \
-    --client-option titleFixed="TRAZALAB - Laboratorio Bioquimico San Rafael" \
-    --client-option fontSize=15 \
-    --client-option disableLeaveAlert=true \
-    --client-option 'theme={"background":"#0b1210","foreground":"#dbe0df","cursor":"#2db29a"}' \
-    java -Xmx96m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \
-         -Duser.language=es -Duser.country=AR \
-         -Dtrazalab.web=true -Dtrazalab.config=/app/config/trazalab.properties \
-         -cp "/app/clases:/app/lib/mysql-connector-j-8.4.0.jar" trazalab.app.MenuPrincipal
+# solo ejecuta la aplicacion, y al salir de ella la sesion termina. Escucha en un
+# socket local; nginx lo publica en /consola/ junto con la portada y el manual.
+(
+    while true; do
+        rm -f /tmp/ttyd.sock
+        ttyd --interface /tmp/ttyd.sock --base-path /consola --writable --max-clients "${MAX_SESIONES:-10}" \
+            --client-option titleFixed="TRAZALAB - Laboratorio Bioquimico San Rafael" \
+            --client-option fontSize=15 \
+            --client-option disableLeaveAlert=true \
+            --client-option 'theme={"background":"#0b1210","foreground":"#dbe0df","cursor":"#2db29a"}' \
+            java -Xmx96m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \
+                 -Duser.language=es -Duser.country=AR \
+                 -Dtrazalab.web=true -Dtrazalab.config=/app/config/trazalab.properties \
+                 -cp "/app/clases:/app/lib/mysql-connector-j-8.4.0.jar" trazalab.app.MenuPrincipal
+        echo "[consola] ttyd termino; se reinicia"
+        sleep 1
+    done
+) &
+
+sed "s/PUERTO/$PUERTO/" /app/web/nginx.conf > /tmp/nginx.conf
+exec nginx -c /tmp/nginx.conf -g 'daemon off;'

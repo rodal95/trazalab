@@ -12,7 +12,7 @@ RUN javac -encoding UTF-8 --release 17 -cp lib/mysql-connector-j-8.4.0.jar -d cl
 # ---------------------------------------------------------------- ejecucion
 FROM eclipse-temurin:21-jre-noble
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ttyd mysql-client tzdata \
+ && apt-get install -y --no-install-recommends ttyd mysql-client tzdata nginx \
  && rm -rf /var/lib/apt/lists/*
 ENV TZ=America/Argentina/Cordoba \
     LANG=C.UTF-8
@@ -20,7 +20,8 @@ WORKDIR /app
 COPY --from=compilacion /fuente/clases clases
 COPY lib lib
 COPY sql sql
-COPY web/iniciar.sh web/cargar-base.sh web/
+COPY web/iniciar.sh web/cargar-base.sh web/nginx.conf web/
+COPY web/sitio web/sitio
 RUN chmod +x web/*.sh && mkdir -p config salidas \
  && useradd --system --home-dir /app trazalab && chown -R trazalab /app
 USER trazalab

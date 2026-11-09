@@ -29,8 +29,14 @@ Diferencias con la version de consola (`main`, tag `ap4`):
 - Sin `TRAZALAB_MODO=web` (o `-Dtrazalab.web=true`) la aplicacion funciona en memoria
   como siempre: las pruebas de `test/` dan el mismo resultado.
 
-**Acceso de demostracion:** usuario `demo`, contrasenia `demo2026` (rol Bioquimico).
-La base vuelve a los datos iniciales en cada despliegue y todas las noches a las 4.
+**Rutas:** `/` portada con el manual de uso y los casos de prueba, `/manual.pdf` el
+mismo manual en PDF, `/consola/` la aplicacion. nginx sirve la portada y pasa
+`/consola/` a ttyd.
+
+**Acceso de demostracion:** el usuario y la contrasenia salen de las variables
+`DEMO_USUARIO` y `DEMO_CONTRASENIA` del servicio (sin ellas: `demo` / `demo2026`, de
+`sql/06-web.sql`). Rol Bioquimico. La base vuelve a los datos iniciales en cada
+despliegue y todas las noches a las 4.
 
 Ejecutarla en local, con Docker:
 
@@ -39,12 +45,15 @@ docker network create trazalab
 docker run -d --name mysql --network trazalab -e MYSQL_ROOT_PASSWORD=clave mysql:8.0
 docker build -t trazalab-web .
 docker run --rm --network trazalab -p 8080:8080 \
-    -e MYSQLHOST=mysql -e MYSQLUSER=root -e MYSQLPASSWORD=clave trazalab-web
+    -e MYSQLHOST=mysql -e MYSQLUSER=root -e MYSQLPASSWORD=clave \
+    -e DEMO_USUARIO=demo -e DEMO_CONTRASENIA=demo2026 trazalab-web
 # http://localhost:8080
 ```
 
 En Railway: un servicio MySQL y este Dockerfile, con las variables `MYSQLHOST`,
-`MYSQLPORT`, `MYSQLUSER` y `MYSQLPASSWORD` tomadas del servicio MySQL.
+`MYSQLPORT`, `MYSQLUSER` y `MYSQLPASSWORD` tomadas del servicio MySQL, mas
+`DEMO_USUARIO` y `DEMO_CONTRASENIA`. El manual en PDF se regenera desde
+`web/sitio/index.html` (impresion de Chrome, A4).
 
 ## Desarrollo en un solo equipo
 ```bash
